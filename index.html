@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Damit es als Vollbild-App vom Home-Bildschirm startet -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Zuhause">
+  <title>Zuhause</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="raster">
+
+    <!-- Uhr & Datum -->
+    <section class="kachel uhr">
+      <div id="uhrzeit" class="uhrzeit">--:--</div>
+      <div id="datum" class="datum">&nbsp;</div>
+      <div id="begruessung" class="begruessung">&nbsp;</div>
+    </section>
+
+    <!-- Wetter -->
+    <section class="kachel wetter">
+      <h2>Wetter · Wietmarschen</h2>
+      <div class="wetter-jetzt">
+        <div id="wetter-symbol" class="wetter-symbol">⏳</div>
+        <div>
+          <div id="wetter-temp" class="wetter-temp">--°</div>
+          <div id="wetter-text" class="wetter-text">Lade Wetter …</div>
+          <div id="wetter-details" class="wetter-details"></div>
+        </div>
+      </div>
+      <div id="wetter-tage" class="wetter-tage"></div>
+    </section>
+
+    <!-- Platzhalter für die nächsten Schritte -->
+    <section class="kachel platzhalter kalender">
+      <h2>📅 Kalender</h2>
+      <p>Kommt in Schritt 3</p>
+    </section>
+
+    <section class="kachel platzhalter todo">
+      <h2>✅ To Do</h2>
+      <p>Kommt in Schritt 3</p>
+    </section>
+
+    <section class="kachel platzhalter nachrichten">
+      <h2>📰 Nachrichten</h2>
+      <p>Kommt in Schritt 2</p>
+    </section>
+
+    <section class="kachel platzhalter musik">
+      <h2>🎵 Musik</h2>
+      <p>Kommt in Schritt 4</p>
+    </section>
+
+    <section class="kachel platzhalter geraete">
+      <h2>💡 Licht &amp; Steckdose</h2>
+      <p>Kommt in Schritt 5</p>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

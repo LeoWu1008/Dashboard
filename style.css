@@ -1,0 +1,124 @@
+/* ============================================
+   FARBEN – hier kannst du das Aussehen ändern
+   ============================================ */
+:root {
+  --hintergrund: #0f1115;
+  --kachel: #1a1d24;
+  --kachel-rand: #262a33;
+  --text: #f2f3f5;
+  --text-leise: #9aa0ab;
+  --akzent: #ffb547;        /* Farbe für Hervorhebungen */
+  --radius: 22px;           /* Rundung der Kacheln */
+  --abstand: 16px;          /* Abstand zwischen Kacheln */
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--hintergrund);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+/* ============================================
+   RASTER – Anordnung der Kacheln (iPad quer)
+   ============================================ */
+.raster {
+  height: 100%;
+  padding: calc(var(--abstand) + env(safe-area-inset-top)) var(--abstand) var(--abstand);
+  display: grid;
+  gap: var(--abstand);
+  grid-template-columns: 1.3fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  grid-template-areas:
+    "uhr       kalender todo"
+    "wetter    kalender todo"
+    "wetter    musik    geraete";
+}
+
+.uhr         { grid-area: uhr; }
+.wetter      { grid-area: wetter; }
+.kalender    { grid-area: kalender; }
+.todo        { grid-area: todo; }
+.nachrichten { display: none; }   /* wird in Schritt 2 eingeblendet */
+.musik       { grid-area: musik; }
+.geraete     { grid-area: geraete; }
+
+/* iPad hochkant */
+@media (orientation: portrait) {
+  .raster {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto 1.4fr 1fr 1fr;
+    grid-template-areas:
+      "uhr      uhr"
+      "wetter   kalender"
+      "todo     kalender"
+      "musik    geraete";
+  }
+}
+
+/* ============================================
+   KACHELN
+   ============================================ */
+.kachel {
+  background: var(--kachel);
+  border: 1px solid var(--kachel-rand);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.kachel h2 {
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-leise);
+  margin-bottom: 14px;
+}
+
+.platzhalter p { color: var(--text-leise); opacity: 0.6; }
+
+/* Uhr */
+.uhr { display: flex; flex-direction: column; justify-content: center; }
+.uhrzeit {
+  font-size: clamp(56px, 9vw, 110px);
+  font-weight: 200;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.datum       { font-size: 22px; margin-top: 8px; }
+.begruessung { font-size: 17px; color: var(--akzent); margin-top: 6px; }
+
+/* Wetter */
+.wetter { display: flex; flex-direction: column; }
+.wetter-jetzt  { display: flex; align-items: center; gap: 20px; }
+.wetter-symbol { font-size: 72px; line-height: 1; }
+.wetter-temp   { font-size: 56px; font-weight: 300; line-height: 1; }
+.wetter-text   { font-size: 19px; margin-top: 4px; }
+.wetter-details{ font-size: 15px; color: var(--text-leise); margin-top: 4px; }
+
+.wetter-tage {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding-top: 16px;
+}
+.tag {
+  text-align: center;
+  background: rgba(255,255,255,0.04);
+  border-radius: 14px;
+  padding: 10px 4px;
+}
+.tag-name    { font-size: 14px; color: var(--text-leise); }
+.tag-symbol  { font-size: 28px; margin: 6px 0; }
+.tag-max     { font-size: 17px; }
+.tag-min     { font-size: 14px; color: var(--text-leise); }
+.tag-regen   { font-size: 12px; color: #6fb3ff; margin-top: 2px; }
