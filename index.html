@@ -46,9 +46,16 @@
       <p>Kommt in Schritt 3</p>
     </section>
 
-    <section class="kachel platzhalter nachrichten">
-      <h2>📰 Nachrichten</h2>
-      <p>Kommt in Schritt 2</p>
+    <section class="kachel nachrichten">
+      <h2>📰 Nachrichten <span id="nachrichten-stand" class="stand"></span></h2>
+      <div class="quellen">
+        <button class="quelle aktiv" data-quelle="alle">Alle</button>
+        <button class="quelle" data-quelle="ARD">ARD</button>
+        <button class="quelle" data-quelle="ZDF">ZDF</button>
+      </div>
+      <ul id="nachrichten-liste" class="nachrichten-liste">
+        <li class="leise">Lade Nachrichten …</li>
+      </ul>
     </section>
 
     <section class="kachel platzhalter musik">

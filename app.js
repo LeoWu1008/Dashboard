@@ -8,6 +8,10 @@ const ORT = {
 };
 
 const WETTER_AKTUALISIEREN_MINUTEN = 15;
+const NACHRICHTEN_AKTUALISIEREN_MINUTEN = 10;
+
+// Adresse des Cloud-Helfers (kommt später). Solange leer, wird direkt abgerufen.
+const CLOUD_HELFER = "";
 
 
 /* =========================================================
@@ -129,6 +133,124 @@ function zeigeWetter(daten) {
 
 
 /* =========================================================
+   NACHRICHTEN (ARD Tagesschau + ZDF heute)
+   ========================================================= */
+const NACHRICHTEN_QUELLEN = {
+  ARD: "https://www.tagesschau.de/api2u/homepage/",
+  ZDF: "https://www.zdf.de/rss/zdf/nachrichten"
+};
+
+let alleNachrichten = [];
+let nachrichtenFehler = [];
+let gewaehlteQuelle = "alle";
+
+// Holt eine Adresse – erst direkt, sonst über den Cloud-Helfer
+async function holeText(url) {
+  try {
+    const antwort = await fetch(url);
+    if (antwort.ok) return await antwort.text();
+  } catch (e) { /* direkt nicht erlaubt, weiter mit Cloud-Helfer */ }
+
+  if (CLOUD_HELFER) {
+    const antwort = await fetch(CLOUD_HELFER + "/proxy?url=" + encodeURIComponent(url));
+    if (antwort.ok) return await antwort.text();
+  }
+  throw new Error("nicht erreichbar");
+}
+
+async function ladeARD() {
+  const daten = JSON.parse(await holeText(NACHRICHTEN_QUELLEN.ARD));
+  return (daten.news || [])
+    .filter(n => n.title && n.shareURL)
+    .map(n => ({ quelle: "ARD", titel: n.title, link: n.shareURL, zeit: new Date(n.date) }));
+}
+
+async function ladeZDF() {
+  const xml = new DOMParser().parseFromString(await holeText(NACHRICHTEN_QUELLEN.ZDF), "text/xml");
+  return [...xml.querySelectorAll("item")].map(item => ({
+    quelle: "ZDF",
+    titel: item.querySelector("title")?.textContent.trim(),
+    link: item.querySelector("link")?.textContent.trim(),
+    zeit: new Date(item.querySelector("pubDate")?.textContent)
+  })).filter(n => n.titel && n.link);
+}
+
+async function ladeNachrichten() {
+  const ergebnisse = await Promise.allSettled([ladeARD(), ladeZDF()]);
+  const namen = ["ARD", "ZDF"];
+
+  alleNachrichten = [];
+  nachrichtenFehler = [];
+  ergebnisse.forEach((e, i) => {
+    if (e.status === "fulfilled") alleNachrichten.push(...e.value);
+    else nachrichtenFehler.push(namen[i]);
+  });
+
+  // Neueste zuerst
+  alleNachrichten.sort((a, b) => (b.zeit || 0) - (a.zeit || 0));
+
+  document.getElementById("nachrichten-stand").textContent =
+    "Stand " + new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  zeigeNachrichten();
+}
+
+function zeigeNachrichten() {
+  const liste = document.getElementById("nachrichten-liste");
+  liste.innerHTML = "";
+
+  const auswahl = alleNachrichten
+    .filter(n => gewaehlteQuelle === "alle" || n.quelle === gewaehlteQuelle)
+    .slice(0, 30);
+
+  auswahl.forEach(n => {
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = n.link;
+    a.target = "_blank";
+    a.rel = "noopener";
+
+    const sender = document.createElement("span");
+    sender.className = "sender " + n.quelle;
+    sender.textContent = n.quelle;
+
+    const titel = document.createElement("span");
+    titel.className = "schlagzeile";
+    titel.textContent = n.titel;
+
+    const zeit = document.createElement("span");
+    zeit.className = "zeit";
+    if (n.zeit && !isNaN(n.zeit)) {
+      zeit.textContent = n.zeit.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    a.append(sender, titel, zeit);
+    li.appendChild(a);
+    liste.appendChild(li);
+  });
+
+  // Hinweis, falls eine Quelle nicht geladen werden konnte
+  nachrichtenFehler
+    .filter(q => gewaehlteQuelle === "alle" || q === gewaehlteQuelle)
+    .forEach(q => {
+      const li = document.createElement("li");
+      li.className = "leise";
+      li.textContent = `⚠️ ${q} konnte nicht geladen werden${CLOUD_HELFER ? "" : " (braucht den Cloud-Helfer)"}.`;
+      liste.appendChild(li);
+    });
+}
+
+// Knöpfe Alle / ARD / ZDF
+document.querySelectorAll(".quelle").forEach(knopf => {
+  knopf.addEventListener("click", () => {
+    document.querySelectorAll(".quelle").forEach(k => k.classList.remove("aktiv"));
+    knopf.classList.add("aktiv");
+    gewaehlteQuelle = knopf.dataset.quelle;
+    zeigeNachrichten();
+  });
+});
+
+
+/* =========================================================
    START
    ========================================================= */
 aktualisiereUhr();
@@ -136,3 +258,6 @@ setInterval(aktualisiereUhr, 1000);
 
 ladeWetter();
 setInterval(ladeWetter, WETTER_AKTUALISIEREN_MINUTEN * 60 * 1000);
+
+ladeNachrichten();
+setInterval(ladeNachrichten, NACHRICHTEN_AKTUALISIEREN_MINUTEN * 60 * 1000);
