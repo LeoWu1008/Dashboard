@@ -96,6 +96,7 @@ html, body {
 }
 .datum       { font-size: 22px; margin-top: 8px; }
 .begruessung { font-size: 17px; color: var(--akzent); margin-top: 6px; }
+.version     { font-size: 11px; color: var(--text-leise); opacity: 0.5; margin-top: 10px; }
 
 /* Wetter */
 .wetter { display: flex; flex-direction: column; }
