@@ -429,6 +429,49 @@ async function goveeAlle(env, an) {
 }
 
 
+/* ---------- Börse (Yahoo Finance) ---------- */
+
+async function boerse(env, symboleText) {
+  const symbole = String(symboleText || "")
+    .split(",")
+    .map(s => s.trim())
+    .filter(s => /^[A-Za-z0-9.^=\-]{1,20}$/.test(s))
+    .slice(0, 20);
+  if (symbole.length === 0) throw new Fehler(400, "Keine Symbole angegeben");
+
+  // 60 Sekunden zwischenspeichern
+  const cacheSchluessel = "cache:boerse:" + symbole.join(",");
+  const gespeichert = await env.SPEICHER.get(cacheSchluessel);
+  if (gespeichert) return JSON.parse(gespeichert);
+
+  const kurse = await Promise.all(symbole.map(async symbol => {
+    try {
+      const antwort = await fetch(
+        `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=15m`,
+        { headers: { "User-Agent": "Mozilla/5.0 (compatible; Dashboard)" } }
+      );
+      if (!antwort.ok) throw new Error("HTTP " + antwort.status);
+      const meta = (await antwort.json()).chart?.result?.[0]?.meta;
+      if (!meta || meta.regularMarketPrice == null) throw new Error("keine Daten");
+      const vortag = meta.previousClose ?? meta.chartPreviousClose;
+      return {
+        symbol,
+        kurs: meta.regularMarketPrice,
+        vortag,
+        aenderung: vortag ? (meta.regularMarketPrice - vortag) / vortag * 100 : null,
+        waehrung: meta.currency || "",
+        zeit: meta.regularMarketTime ? meta.regularMarketTime * 1000 : null
+      };
+    } catch (e) {
+      return { symbol, fehler: e.message };
+    }
+  }));
+
+  await env.SPEICHER.put(cacheSchluessel, JSON.stringify(kurse), { expirationTtl: 60 });
+  return kurse;
+}
+
+
 /* ---------- Verteiler ---------- */
 
 export default {
@@ -472,6 +515,9 @@ export default {
           await sitzungPruefen(request, env);
           if (!body.titel || !body.liste) throw new Fehler(400, "Titel fehlt");
           return json(await todoNeu(env, body.liste, String(body.titel).slice(0, 255)), request);
+
+        case "/boerse":
+          return json(await boerse(env, url.searchParams.get("symbole")), request);
 
         case "/govee/schluessel":
           await sitzungPruefen(request, env);

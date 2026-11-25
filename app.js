@@ -802,6 +802,99 @@ document.getElementById("govee-abbrechen").addEventListener("click", () => {
 
 
 /* =========================================================
+   BÖRSEN-LAUFBAND (Yahoo Finance über den Cloud-Helfer)
+   ========================================================= */
+// Symbole wie bei Yahoo Finance (finance.yahoo.com). Eigene Aktien einfach ergänzen,
+// z. B. { symbol: "SAP.DE", name: "SAP" } oder { symbol: "AAPL", name: "Apple" }
+const BOERSE = [
+  { symbol: "^GDAXI",    name: "DAX" },
+  { symbol: "^STOXX50E", name: "Euro Stoxx 50" },
+  { symbol: "^DJI",      name: "Dow Jones" },
+  { symbol: "^GSPC",     name: "S&P 500" },
+  { symbol: "^IXIC",     name: "Nasdaq" },
+  { symbol: "EURUSD=X",  name: "EUR/USD", stellen: 4 },
+  { symbol: "GC=F",      name: "Gold" },
+  { symbol: "BTC-EUR",   name: "Bitcoin" }
+];
+const BOERSE_AKTUALISIEREN_SEKUNDEN = 60;
+const LAUFBAND_PIXEL_PRO_SEKUNDE = 45;
+
+function zahl(wert, stellen = 2) {
+  return wert.toLocaleString("de-DE", { minimumFractionDigits: stellen, maximumFractionDigits: stellen });
+}
+
+async function ladeBoerse() {
+  try {
+    const antwort = await fetch(CLOUD_HELFER + "/boerse?symbole=" + encodeURIComponent(BOERSE.map(b => b.symbol).join(",")));
+    if (!antwort.ok) throw new Error("HTTP " + antwort.status);
+    zeigeBoerse(await antwort.json());
+  } catch (e) {
+    console.error("Börse:", e);
+  }
+}
+
+function boersenEintrag(b, k) {
+  const el = document.createElement("span");
+  el.className = "ticker-eintrag";
+  const name = document.createElement("span");
+  name.className = "ticker-name";
+  name.textContent = b.name;
+  el.appendChild(name);
+
+  if (!k || k.fehler) {
+    const f = document.createElement("span");
+    f.className = "leise";
+    f.textContent = "–";
+    el.appendChild(f);
+    return el;
+  }
+
+  const kurs = document.createElement("span");
+  kurs.className = "ticker-kurs";
+  kurs.textContent = zahl(k.kurs, b.stellen ?? 2) + (k.waehrung === "USD" && b.symbol !== "EURUSD=X" ? " $" : k.waehrung === "EUR" && !b.symbol.startsWith("^") ? " €" : "");
+  el.appendChild(kurs);
+
+  if (k.aenderung != null) {
+    const a = document.createElement("span");
+    a.className = k.aenderung >= 0 ? "ticker-plus" : "ticker-minus";
+    a.textContent = (k.aenderung >= 0 ? "▲ +" : "▼ ") + zahl(k.aenderung) + " %";
+    el.appendChild(a);
+  }
+  return el;
+}
+
+function zeigeBoerse(kurse) {
+  const band = document.getElementById("ticker-band");
+  const teil = document.createDocumentFragment();
+  BOERSE.forEach((b, i) => {
+    if (i > 0) {
+      const t = document.createElement("span");
+      t.className = "ticker-trenner";
+      t.textContent = "•";
+      teil.appendChild(t);
+    }
+    teil.appendChild(boersenEintrag(b, kurse.find(k => k.symbol === b.symbol)));
+  });
+  const ende = document.createElement("span");
+  ende.className = "ticker-trenner";
+  ende.textContent = "•";
+  teil.appendChild(ende);
+
+  // Inhalt doppelt, damit das Laufband nahtlos weiterläuft
+  const erstesMal = !band.classList.contains("laeuft");
+  band.innerHTML = "";
+  band.appendChild(teil.cloneNode(true));
+  band.appendChild(teil);
+
+  if (erstesMal) {
+    const breite = band.scrollWidth / 2;
+    band.style.setProperty("--dauer", Math.max(20, breite / LAUFBAND_PIXEL_PRO_SEKUNDE) + "s");
+    band.classList.add("laeuft");
+  }
+}
+
+
+/* =========================================================
    START
    ========================================================= */
 aktualisiereUhr();
@@ -818,3 +911,6 @@ setInterval(ladeMicrosoft, MICROSOFT_AKTUALISIEREN_MINUTEN * 60 * 1000);
 
 ladeLichter();
 setInterval(() => { if (!offenesLicht) ladeLichter(); }, LICHT_AKTUALISIEREN_MINUTEN * 60 * 1000);
+
+ladeBoerse();
+setInterval(ladeBoerse, BOERSE_AKTUALISIEREN_SEKUNDEN * 1000);

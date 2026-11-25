@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zuhause">
   <title>Zuhause</title>
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <main class="raster">
@@ -19,7 +19,7 @@
       <div id="uhrzeit" class="uhrzeit">--:--</div>
       <div id="datum" class="datum">&nbsp;</div>
       <div id="begruessung" class="begruessung">&nbsp;</div>
-      <div class="version">Version 9</div>
+      <div class="version">Version 10</div>
     </section>
 
     <!-- Wetter -->
@@ -130,8 +130,13 @@
       </div>
     </div>
 
+    <!-- Börsen-Laufband -->
+    <section class="ticker" aria-label="Börsenkurse">
+      <div class="ticker-band" id="ticker-band"><span class="ticker-eintrag leise">Lade Börsenkurse …</span></div>
+    </section>
+
   </main>
 
-  <script src="app.js?v=9"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

@@ -34,12 +34,13 @@ html, body {
   display: grid;
   gap: var(--abstand);
   grid-template-columns: 1.15fr 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr 0.7fr;
+  grid-template-rows: 1fr 1fr 1fr 0.7fr 46px;
   grid-template-areas:
     "uhr       kalender     todo"
     "wetter    kalender     todo"
     "wetter    nachrichten  geraete"
-    "musik     nachrichten  geraete";
+    "musik     nachrichten  geraete"
+    "ticker    ticker       ticker";
 }
 
 .uhr         { grid-area: uhr; }
@@ -54,12 +55,13 @@ html, body {
 @media (orientation: portrait) {
   .raster {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1.4fr 1.2fr 1.3fr 0.5fr;
+    grid-template-rows: 1.4fr 1.2fr 1.3fr 0.5fr 46px;
     grid-template-areas:
       "uhr         wetter"
       "kalender    todo"
       "nachrichten geraete"
-      "musik       geraete";
+      "musik       geraete"
+      "ticker      ticker";
   }
 }
 
@@ -89,7 +91,7 @@ html, body {
 /* Uhr */
 .uhr { display: flex; flex-direction: column; justify-content: center; }
 .uhrzeit {
-  font-size: clamp(56px, min(9vw, 13vh), 110px);
+  font-size: clamp(48px, min(9vw, 11vh), 110px);
   font-weight: 200;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -337,7 +339,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 0;
+  padding: 6px 0;
   border-top: 1px solid var(--kachel-rand);
 }
 .licht:first-child { border-top: none; }
@@ -418,3 +420,32 @@ html, body {
 
 .kurzbefehl-knoepfe { display: flex; gap: 6px; flex: none; }
 .kurzbefehl-knoepfe .mini-knopf { font-size: 14px; padding: 8px 14px; }
+
+/* Börsen-Laufband */
+.ticker {
+  grid-area: ticker;
+  background: var(--kachel);
+  border: 1px solid var(--kachel-rand);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+.ticker-band {
+  display: flex;
+  white-space: nowrap;
+  will-change: transform;
+}
+.ticker-band.laeuft { animation: laufband var(--dauer, 60s) linear infinite; }
+@keyframes laufband {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ticker-eintrag { display: inline-flex; align-items: baseline; gap: 8px; padding: 0 26px; font-size: 16px; }
+.ticker-name { font-weight: 600; }
+.ticker-kurs { font-variant-numeric: tabular-nums; }
+.ticker-plus  { color: #34c759; font-variant-numeric: tabular-nums; font-size: 15px; }
+.ticker-minus { color: #ff5a5a; font-variant-numeric: tabular-nums; font-size: 15px; }
+.ticker-trenner { color: var(--kachel-rand); }
