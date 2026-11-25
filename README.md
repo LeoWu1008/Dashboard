@@ -7,3 +7,8 @@ Ein Smart-Home-Dashboard für das iPad: Uhr, Wetter, Kalender, To Do, Nachrichte
 - `app.js`: die Logik (Einstellungen stehen ganz oben)
 
 **Wichtig:** Dieses Repository ist öffentlich. Hier kommen nie Passwörter oder API-Schlüssel hinein.
+
+## Cloud-Helfer (`worker/`)
+
+Ein kleiner Cloudflare Worker unter `https://dashboard-helfer.leowu1008.workers.dev`.
+Er ruft Dienste ab, die der Browser nicht direkt erreichen darf. Hochladen mit `worker/deploy.sh`.

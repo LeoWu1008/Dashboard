@@ -11,7 +11,7 @@ const WETTER_AKTUALISIEREN_MINUTEN = 15;
 const NACHRICHTEN_AKTUALISIEREN_MINUTEN = 10;
 
 // Adresse des Cloud-Helfers (kommt später). Solange leer, wird direkt abgerufen.
-const CLOUD_HELFER = "";
+const CLOUD_HELFER = "https://dashboard-helfer.leowu1008.workers.dev";
 
 
 /* =========================================================
