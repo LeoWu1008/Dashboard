@@ -563,8 +563,48 @@ const WEISSTOENE = [
 ];
 const FARBEN = ["#ff2a2a", "#ff7a00", "#ffd000", "#3ddc5a", "#00c8ff", "#2a5bff", "#8a2aff", "#ff2ab8"];
 
+// Bluetooth-Lichter, die über Kurzbefehle (Kurzbefehle-App) geschaltet werden.
+// Die Namen müssen GENAU so heißen wie die Kurzbefehle in der Kurzbefehle-App.
+const KURZBEFEHL_LICHTER = [
+  { name: "Bett",    an: "Bett an",    aus: "Bett aus" },
+  { name: "Schrank", an: "Schrank an", aus: "Schrank aus" }
+];
+
 let lichter = [];
 let offenesLicht = null;
+
+function kurzbefehlStarten(name) {
+  window.location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
+}
+
+function zeigeKurzbefehlLichter(liste) {
+  KURZBEFEHL_LICHTER.forEach(k => {
+    const li = document.createElement("li");
+    li.className = "licht";
+
+    const punkt = document.createElement("div");
+    punkt.className = "licht-punkt";
+    punkt.textContent = "💡";
+
+    const text = document.createElement("div");
+    text.className = "licht-text";
+    text.innerHTML = `<div class="licht-name"></div><div class="licht-info">Bluetooth</div>`;
+    text.querySelector(".licht-name").textContent = k.name;
+
+    const knoepfe = document.createElement("div");
+    knoepfe.className = "kurzbefehl-knoepfe";
+    [["An", k.an], ["Aus", k.aus]].forEach(([beschriftung, kurzbefehl]) => {
+      const b = document.createElement("button");
+      b.className = "mini-knopf";
+      b.textContent = beschriftung;
+      b.addEventListener("click", () => kurzbefehlStarten(kurzbefehl));
+      knoepfe.appendChild(b);
+    });
+
+    li.append(punkt, text, knoepfe);
+    liste.appendChild(li);
+  });
+}
 
 function rgbZuHex(wert) { return "#" + Number(wert).toString(16).padStart(6, "0"); }
 function hexZuRgb(hex) { return parseInt(hex.slice(1), 16); }
@@ -609,7 +649,7 @@ function zeigeLichter() {
   liste.innerHTML = "";
   document.getElementById("alle-knoepfe").hidden = lichter.length < 2;
 
-  if (lichter.length === 0) {
+  if (lichter.length === 0 && KURZBEFEHL_LICHTER.length === 0) {
     liste.innerHTML = `<li class="leise">Keine steuerbaren Govee-Lichter gefunden.</li>`;
     return;
   }
@@ -647,6 +687,8 @@ function zeigeLichter() {
     li.append(punkt, text, schalter);
     liste.appendChild(li);
   });
+
+  zeigeKurzbefehlLichter(liste);
 }
 
 // Befehl an ein Licht schicken (Anzeige wird sofort angepasst)

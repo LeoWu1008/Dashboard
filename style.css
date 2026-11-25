@@ -415,3 +415,6 @@ html, body {
   user-select: text;
 }
 .knopf-reihe { display: flex; gap: 10px; }
+
+.kurzbefehl-knoepfe { display: flex; gap: 6px; flex: none; }
+.kurzbefehl-knoepfe .mini-knopf { font-size: 14px; padding: 8px 14px; }
