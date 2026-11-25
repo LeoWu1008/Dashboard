@@ -737,23 +737,30 @@ function treffer(geo, pos) {
   };
 }
 
-// 2) „Schreibtisch“: Streifen hinter den Monitoren, strahlt an die Wand
+// 2) „Schreibtisch“: Streifen unter der Tischplatte, leuchtet auf den Boden
 {
-  const m1 = quader(welt, 0.62, 2.05, 0.76, 0.775, 0.12, 0.135, ledMaterial());
-  const m2 = quader(welt, 2.065, 2.075, 0.84, 1.48, 0.24, 0.4, ledMaterial());
-  m1.castShadow = m2.castShadow = false;
-  const glanz = leuchtTextur(200, 100, (u, v) => {
-    const x = 0.3 + u * 2.1, y = 0.7 + v * 1.0;
-    return Math.min(abstandZurLinie(x, y, 0.75, 0.95, 2.0, 0.95), abstandZurLinie(x, y, 2.05, 0.9, 2.05, 1.45) * 0.8);
-  }, 0.22);
-  const wandSchein = leuchtFlaeche(glanz, 2.1, 1.0, P(1.35, 1.2, 0.012));
-  const tischSchein = leuchtFlaeche(leuchtTextur(128, 64, (u, v) => abstandZumRechteck(u, v, 0.15, 0.6, 0.85, 1) * 0.6, 0.18),
-    1.6, 0.8, P(1.33, 0.747, 0.5), [-Math.PI / 2, 0, 0]);
+  const D = { x0: 0.5, x1: 2.15, n0: 0.1, n1: 0.9 };            // Tischplatte
+  const ix0 = D.x0 + 0.06, ix1 = D.x1 - 0.06, in0 = D.n0 + 0.06, in1 = D.n1 - 0.06;
+  const y = 0.695;                                               // direkt unter der Platte
+  const leiste = [
+    quader(welt, ix0, ix1, y, y + 0.01, in0, in0 + 0.012, ledMaterial()),
+    quader(welt, ix0, ix1, y, y + 0.01, in1 - 0.012, in1, ledMaterial()),
+    quader(welt, ix0, ix0 + 0.012, y, y + 0.01, in0, in1, ledMaterial()),
+    quader(welt, ix1 - 0.012, ix1, y, y + 0.01, in0, in1, ledMaterial())
+  ];
+  leiste.forEach(m => (m.castShadow = false));
+  const rand = 0.55;
+  const fx0 = D.x0 - rand, fx1 = D.x1 + rand, fn0 = 0.0, fn1 = D.n1 + rand;
+  const saum = leuchtTextur(220, 128, (u, v) => {
+    const x = fx0 + u * (fx1 - fx0), n = fn0 + v * (fn1 - fn0);
+    return abstandZumRechteck(x, n, D.x0 + 0.1, D.n0 + 0.05, D.x1 - 0.1, D.n1 - 0.08) * 0.85;
+  }, 0.26);
+  const bodenSchein = leuchtFlaeche(saum, fx1 - fx0, fn1 - fn0, P((fx0 + fx1) / 2, 0.005, (fn0 + fn1) / 2), [-Math.PI / 2, 0, 0]);
   ledObjekte.desk = {
-    leuchtend: [m1, m2], halos: [], scheine: [{ m: wandSchein, staerke: 0.95 }, { m: tischSchein, staerke: 0.35 }],
-    licht: punktlicht(P(1.4, 1.1, 0.2), 2.2), lichtStaerke: 0.9,
-    treffer: [treffer(new THREE.BoxGeometry(1.7, 0.9, 0.5), P(1.32, 1.1, 0.3))],
-    anker: P(1.32, 1.62, 0.25)
+    leuchtend: leiste, halos: [], scheine: [{ m: bodenSchein, staerke: 1.0 }],
+    licht: punktlicht(P((D.x0 + D.x1) / 2, 0.3, 0.5), 2.0), lichtStaerke: 0.7,
+    treffer: [treffer(new THREE.BoxGeometry(D.x1 - D.x0 + 0.3, 0.7, D.n1 - D.n0 + 0.3), P((D.x0 + D.x1) / 2, 0.35, (D.n0 + D.n1) / 2))],
+    anker: P(0.9, 0.35, D.n1 + 0.15)
   };
 }
 
