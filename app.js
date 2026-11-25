@@ -539,11 +539,12 @@ document.getElementById("todo-formular").addEventListener("submit", async e => {
 
 async function ladeMicrosoft() {
   if (!sitzung()) { zeigeVerbinden(); return; }
-  ladeKalender().catch(e => {
+  // Nacheinander laden – Microsoft mag keine vielen gleichzeitigen Anfragen
+  await ladeKalender().catch(e => {
     if (e.message !== "nicht angemeldet")
       document.getElementById("kalender-inhalt").textContent = "⚠️ Kalender: " + e.message;
   });
-  ladeTodo().catch(e => {
+  await ladeTodo().catch(e => {
     if (e.message !== "nicht angemeldet")
       document.getElementById("todo-inhalt").textContent = "⚠️ To Do: " + e.message;
   });

@@ -89,7 +89,7 @@ html, body {
 /* Uhr */
 .uhr { display: flex; flex-direction: column; justify-content: center; }
 .uhrzeit {
-  font-size: clamp(56px, 9vw, 110px);
+  font-size: clamp(56px, min(9vw, 13vh), 110px);
   font-weight: 200;
   line-height: 1;
   font-variant-numeric: tabular-nums;

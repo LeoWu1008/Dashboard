@@ -180,7 +180,7 @@ async function msToken(env) {
   return daten.access_token;
 }
 
-async function graph(env, pfad, optionen = {}) {
+async function graph(env, pfad, optionen = {}, versuch = 0) {
   const token = await msToken(env);
   const antwort = await fetch(GRAPH + pfad, {
     ...optionen,
@@ -191,6 +191,12 @@ async function graph(env, pfad, optionen = {}) {
       ...(optionen.headers || {})
     }
   });
+  // Microsoft bremst bei zu vielen Anfragen: kurz warten und nochmal versuchen
+  if ((antwort.status === 429 || antwort.status === 503) && versuch < 3) {
+    const sekunden = Math.min(5, Number(antwort.headers.get("Retry-After")) || 1 + versuch);
+    await new Promise(r => setTimeout(r, sekunden * 1000));
+    return graph(env, pfad, optionen, versuch + 1);
+  }
   if (antwort.status === 204) return null;
   const daten = await antwort.json();
   if (!antwort.ok) throw new Fehler(502, "Microsoft Graph: " + (daten.error?.message || antwort.status));
@@ -208,14 +214,23 @@ const KALENDER_FARBEN = {
 };
 
 async function kalender(env, tage) {
+  const zwischenspeicher = await env.SPEICHER.get("cache:kalender:" + tage);
+  if (zwischenspeicher) return JSON.parse(zwischenspeicher);
+  const termine = await kalenderAbfragen(env, tage);
+  await env.SPEICHER.put("cache:kalender:" + tage, JSON.stringify(termine), { expirationTtl: 180 });
+  return termine;
+}
+
+async function kalenderAbfragen(env, tage) {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const ende = new Date(start.getTime() + tage * 86400000);
 
   const alleKalender = (await graph(env, "/me/calendars?$select=id,name,color,hexColor,isDefaultCalendar")).value || [];
 
-  // Alle Kalender gleichzeitig abfragen
-  const listen = await Promise.all(alleKalender.map(async k => {
+  // Kalender NACHEINANDER abfragen (Microsoft erlaubt nur wenige gleichzeitige Anfragen)
+  const listen = [];
+  for (const k of alleKalender) listen.push(await (async () => {
     const daten = await graph(env,
       `/me/calendars/${k.id}/calendarView?startDateTime=${start.toISOString()}&endDateTime=${ende.toISOString()}` +
       `&$select=subject,start,end,isAllDay,location,iCalUId,isCancelled&$top=200`);
@@ -231,7 +246,7 @@ async function kalender(env, tage) {
         farbe: (k.hexColor && k.hexColor !== "") ? k.hexColor : (KALENDER_FARBEN[k.color] || "#ffb547"),
         uid: t.iCalUId
       }));
-  }));
+  })());
 
   // Zusammenführen, doppelte Termine entfernen, nach Beginn sortieren
   const gesehen = new Set();
@@ -250,6 +265,14 @@ async function kalender(env, tage) {
 /* ---------- Microsoft To Do ---------- */
 
 async function todoLaden(env) {
+  const zwischenspeicher = await env.SPEICHER.get("cache:todo");
+  if (zwischenspeicher) return JSON.parse(zwischenspeicher);
+  const ergebnis = await todoAbfragen(env);
+  await env.SPEICHER.put("cache:todo", JSON.stringify(ergebnis), { expirationTtl: 120 });
+  return ergebnis;
+}
+
+async function todoAbfragen(env) {
   const listen = (await graph(env, "/me/todo/lists")).value || [];
   // Standardliste ("Aufgaben") zuerst
   listen.sort((a, b) => (b.wellknownListName === "defaultList") - (a.wellknownListName === "defaultList"));
@@ -278,6 +301,7 @@ async function todoErledigt(env, listeId, aufgabeId) {
     method: "PATCH",
     body: JSON.stringify({ status: "completed" })
   });
+  await env.SPEICHER.delete("cache:todo");
   return { ok: true };
 }
 
@@ -286,6 +310,7 @@ async function todoNeu(env, listeId, titel) {
     method: "POST",
     body: JSON.stringify({ title: titel })
   });
+  await env.SPEICHER.delete("cache:todo");
   return { id: a.id, titel: a.title, wichtig: false, faellig: null };
 }
 
@@ -331,12 +356,17 @@ async function goveeGeraeteListe(env, neu = false) {
   return daten.data || [];
 }
 
+// Nur echte Lichter – keine Gruppen oder Szenen aus der Govee-App
+function istLicht(g) {
+  return !["BaseGroup", "SameModeGroup", "DreamViewScenic"].includes(g.sku) && !!faehigkeit(g, "powerSwitch");
+}
+
 function faehigkeit(geraet, instanz) {
   return (geraet.capabilities || []).find(c => c.instance === instanz);
 }
 
 async function goveeLichter(env) {
-  const geraete = (await goveeGeraeteListe(env)).filter(g => faehigkeit(g, "powerSwitch"));
+  const geraete = (await goveeGeraeteListe(env)).filter(istLicht);
 
   return Promise.all(geraete.map(async g => {
     const temp = faehigkeit(g, "colorTemperatureK");
@@ -393,7 +423,7 @@ async function goveeSchalten(env, { sku, device, art, wert }) {
 }
 
 async function goveeAlle(env, an) {
-  const geraete = (await goveeGeraeteListe(env)).filter(g => faehigkeit(g, "powerSwitch"));
+  const geraete = (await goveeGeraeteListe(env)).filter(istLicht);
   await Promise.allSettled(geraete.map(g => goveeSchalten(env, { sku: g.sku, device: g.device, art: "an", wert: an })));
   return { ok: true };
 }
