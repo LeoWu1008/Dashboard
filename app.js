@@ -566,8 +566,7 @@ const FARBEN = ["#ff2a2a", "#ff7a00", "#ffd000", "#3ddc5a", "#00c8ff", "#2a5bff"
 // Bluetooth-Lichter, die über Kurzbefehle (Kurzbefehle-App) geschaltet werden.
 // Die Namen müssen GENAU so heißen wie die Kurzbefehle in der Kurzbefehle-App.
 const KURZBEFEHL_LICHTER = [
-  { name: "Bett",    an: "Bett an",    aus: "Bett aus" },
-  { name: "Schrank", an: "Schrank an", aus: "Schrank aus" }
+  { name: "Bett & Schrank", an: "Bluetooth on", aus: "Bluetooth off" }
 ];
 
 let lichter = [];
