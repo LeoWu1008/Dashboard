@@ -20,8 +20,6 @@ const RAUM = {
   hoehe: 2.45,        // Deckenhöhe (flacher Teil)
   kniestock: 1.0,     // Höhe der niedrigen Wand unter der Schräge
   schraegeWest: 1.5,  // so weit ragt die Schräge auf der Westseite in den Raum
-  schraegeOst: 1.5,   // Schräge auf der Ostseite (nur im Süden, über dem Regal)
-  schraegeOstBis: 1.7 // bis hierhin (von Süden) reicht die Ostschräge
 };
 
 /* ---------- Farben ---------- */
@@ -47,7 +45,7 @@ const LEDS = [
   { id: "desk",    name: "Schreibtisch",   govee: "Schreibtisch" },
   { id: "bulb",    name: "Nachttisch",     govee: "Smart LED Bulb" },
   { id: "bett",    name: "Bett",           kurzbefehl: true },
-  { id: "schrank", name: "Raumteiler",     kurzbefehl: true }
+  { id: "schrank", name: "Kleiderschrank", kurzbefehl: true }
 ];
 
 /* =========================================================
@@ -146,8 +144,10 @@ const szene = new THREE.Scene();
 szene.background = new THREE.Color(0x0f1115);
 
 const kamera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-const ziel = P(W / 2, 0.6, L / 2);
-kamera.position.set(W / 2 + 0.6, 7.6, -L / 2 + 5.6);
+// Blick von der Tür (Ostwand, Norden) leicht von oben in den Raum
+const ziel = P(W / 2 - 0.35, 0.3, L / 2 - 0.35);
+const startPosition = P(W + 2.3, 7.4, 4.9);
+kamera.position.copy(startPosition);
 
 const steuerung = new OrbitControls(kamera, renderer.domElement);
 steuerung.target.copy(ziel);
@@ -184,7 +184,7 @@ function wand(meshes, innen, punkt) {
   waende.push({ meshes, innen, punkt });
 }
 
-const sw = RAUM.schraegeWest, so = RAUM.schraegeOst, soBis = RAUM.schraegeOstBis;
+const sw = RAUM.schraegeWest;
 
 // Südwand (Fensterwand) mit drei Fenstern
 const fensterSued = [
@@ -192,7 +192,7 @@ const fensterSued = [
   [2.45, 3.15, 0.95, 2.10],   // großes Fenster über der Heizung
   [3.35, 3.75, 1.00, 1.50]    // kleines Fenster unter der Ostschräge
 ];
-const sued = giebelwand(raum, [[0, 0], [W, 0], [W, K], [W - so, H], [sw, H], [0, K]], fensterSued, 0, wandMat);
+const sued = giebelwand(raum, [[0, 0], [W, 0], [W, H], [sw, H], [0, K]], fensterSued, 0, wandMat);
 wand([sued], new THREE.Vector3(0, 0, -1), P(W / 2, 1, 0));
 
 // Nordwand: links schwarz gestrichen, rechts weiß
@@ -205,12 +205,9 @@ const kniestockWest = flaeche(raum, [P(0, 0, 0), P(0, 0, L), P(0, K, L), P(0, K,
 wand([kniestockWest], new THREE.Vector3(1, 0, 0), P(0, 0.5, L / 2));
 flaeche(raum, [P(0, K, 0), P(0, K, L), P(sw, H, L), P(sw, H, 0)], schraegeMat);
 
-// Ostseite: im Süden Kniestock + Schräge, sonst volle Wand (Gaube)
-const kniestockOst = flaeche(raum, [P(W, 0, 0), P(W, 0, soBis), P(W, K, soBis), P(W, K, 0)], wandMat);
-const ostWand = flaeche(raum, [P(W, 0, soBis), P(W, 0, L), P(W, H, L), P(W, H, soBis)], wandMat);
-const ostGiebel = flaeche(raum, [P(W - so, H, soBis), P(W, H, soBis), P(W, K, soBis)], wandMat);
-wand([kniestockOst, ostWand, ostGiebel], new THREE.Vector3(-1, 0, 0), P(W, 1, L / 2));
-flaeche(raum, [P(W, K, 0), P(W, K, soBis), P(W - so, H, soBis), P(W - so, H, 0)], schraegeMat);
+// Ostseite: gerade Wand mit Tür
+const ostWand = flaeche(raum, [P(W, 0, 0), P(W, 0, L), P(W, H, L), P(W, H, 0)], wandMat);
+wand([ostWand], new THREE.Vector3(-1, 0, 0), P(W, 1, L / 2));
 
 // Fenster (Rahmen + Glas)
 fensterSued.forEach(([x0, x1, y0, y1]) => {
@@ -223,11 +220,13 @@ fensterSued.forEach(([x0, x1, y0, y1]) => {
 quader(raum, 2.25, 3.35, 0.15, 0.75, 0.03, 0.12, mat(FARBE.weiss, { roughness: 0.5 }));
 for (let x = 2.3; x < 3.33; x += 0.06) quader(raum, x, x + 0.025, 0.17, 0.73, 0.11, 0.13, mat(0xe2e2e2));
 
-// Tür (Ostwand, nahe der schwarzen Wand)
-quader(raum, W - 0.03, W, 0, 2.05, 3.95, 4.85, mat(FARBE.weiss, { roughness: 0.6 }));
-quader(raum, W - 0.05, W - 0.03, 0.95, 1.0, 4.68, 4.78, mat(0x9a9a9a, { metalness: 0.8, roughness: 0.3 }));
-// Lichtschalter neben der Tür
-quader(raum, W - 0.02, W, 1.0, 1.25, 4.9, 4.98, mat(FARBE.weiss));
+// Tür (Ostwand, nahe der schwarzen Wand) – wird mit der Ostwand durchsichtig
+const tuer = [
+  quader(raum, W - 0.03, W, 0, 2.05, 3.95, 4.85, mat(FARBE.weiss, { roughness: 0.6 })),
+  quader(raum, W - 0.05, W - 0.03, 0.95, 1.0, 4.68, 4.78, mat(0x9a9a9a, { metalness: 0.8, roughness: 0.3 })),
+  quader(raum, W - 0.02, W, 1.0, 1.25, 4.9, 4.98, mat(FARBE.weiss))   // Lichtschalter
+];
+wand(tuer, new THREE.Vector3(-1, 0, 0), P(W, 1, L / 2));
 
 // Weltkarte an der schwarzen Wand
 for (let i = 0; i < 5; i++) quader(raum, 0.75 + i * 0.27, 0.99 + i * 0.27, 1.45, 1.78, L - 0.03, L - 0.01, mat(0xe8e2d6));
@@ -457,20 +456,19 @@ function punktlicht(x, y, n, reichweite) {
   ledObjekte.bett = {
     meshes: ms, sprites, licht: punktlicht(B.x1 + 0.1, 0.15, 4.0, 2.2),
     treffer: [trefferflaeche(raum, new THREE.BoxGeometry(B.x1 - B.x0 + 0.3, 0.3, B.n1 - B.n0 + 0.3), P((B.x0 + B.x1) / 2, 0.15, (B.n0 + B.n1) / 2))],
-    anker: P(B.x1 + 0.2, 0.45, 4.35)
+    anker: P(B.x1 + 0.2, 0.45, 3.55)
   };
 }
 
-// 5) Streifen an der Rückseite des Raumteilers (Bluetooth, H6125)
+// 5) Streifen hinten oben am Kleiderschrank, leuchtet an die Wand (Bluetooth, H6125)
 {
-  const m = quader(raum, T.x0 + 0.03, T.x1 - 0.03, T.h - 0.04, T.h - 0.02, T.n1, T.n1 + 0.015, ledMaterial());
-  const m2 = quader(raum, T.x0 + 0.01, T.x0 + 0.03, 0.1, T.h - 0.04, T.n1, T.n1 + 0.015, ledMaterial());
-  const sprites = [0.65, 1.05, 1.45].map(x => leuchtSprite(raum, x, T.h + 0.05, T.n1 + 0.05, 0.6));
-  sprites.push(leuchtSprite(raum, T.x0, 0.75, T.n1 + 0.05, 0.6));
+  const m = quader(raum, W - 0.06, W - 0.04, S.h + 0.005, S.h + 0.02, S.n0 + 0.05, S.n1 - 0.05, ledMaterial());
+  const sprites = [];
+  for (let n = S.n0 + 0.2; n <= S.n1 - 0.1; n += 0.4) sprites.push(leuchtSprite(raum, W - 0.08, S.h + 0.2, n, 0.75));
   ledObjekte.schrank = {
-    meshes: [m, m2], sprites, licht: punktlicht(1.05, 1.5, T.n1 + 0.25, 2.2),
-    treffer: [trefferflaeche(raum, new THREE.BoxGeometry(T.x1 - T.x0, 0.5, 0.3), P((T.x0 + T.x1) / 2, T.h - 0.1, T.n1 + 0.1))],
-    anker: P(0.85, T.h + 0.3, (T.n0 + T.n1) / 2)
+    meshes: [m], sprites, licht: punktlicht(W - 0.3, S.h + 0.25, (S.n0 + S.n1) / 2, 2.4),
+    treffer: [trefferflaeche(raum, new THREE.BoxGeometry(0.7, 0.5, S.n1 - S.n0), P(S.x0 + 0.3, S.h + 0.15, (S.n0 + S.n1) / 2))],
+    anker: P(S.x0 + 0.25, S.h + 0.15, (S.n0 + S.n1) / 2)
   };
 }
 
@@ -589,7 +587,7 @@ function zeigePopup(led, x, y) {
   const z = ledZustand(led);
   popup.querySelector(".raum-popup-name").textContent = led.name;
   popup.querySelector(".raum-popup-info").textContent =
-    led.kurzbefehl ? "Bluetooth · Bett & Raumteiler zusammen"
+    led.kurzbefehl ? "Bluetooth · Bett & Kleiderschrank zusammen"
     : !z.bekannt ? "Govee nicht verbunden"
     : z.licht.online === false ? "offline"
     : z.an ? `an · ${z.helligkeit} %` : "aus";
@@ -681,7 +679,7 @@ function groesseAnpassen() {
   renderer.setSize(b, h, false);
   kamera.aspect = b / h;
   // Im Hochformat etwas weiter weg, damit der ganze Raum passt
-  kamera.fov = b < h ? 55 : 42;
+  kamera.fov = b < h ? 58 : 44;
   kamera.updateProjectionMatrix();
 }
 window.addEventListener("resize", groesseAnpassen);
