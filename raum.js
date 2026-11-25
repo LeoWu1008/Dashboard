@@ -574,15 +574,16 @@ let ipadScreen, ipadRahmen;
   quader(g, 1.0, 1.4, T.h, T.h + 0.05, 2.45, 2.7, mat(0xe9eef2), 0.004);                    // Zeitschriften
 
   // Fernseher an Schwenkarm (Nordseite, Richtung Bett)
-  quader(g, 1.6, 1.64, 0.95, 1.2, T.n1, T.n1 + 0.14, M.metall);
-  quader(g, 1.25, 2.25, 0.86, 1.44, T.n1 + 0.14, T.n1 + 0.18, M.schwarz, 0.01);
-  const tvBild = new THREE.Mesh(new THREE.PlaneGeometry(0.97, 0.55), new THREE.MeshBasicMaterial({ toneMapped: false,
+  const tvMitte = (T.x0 + T.x1) / 2;                                   // mittig hinter dem Raumteiler
+  quader(g, tvMitte - 0.1, tvMitte + 0.1, 1.0, 1.3, T.n1, T.n1 + 0.1, M.metall);
+  quader(g, tvMitte - 0.6, tvMitte + 0.6, 0.9, 1.6, T.n1 + 0.1, T.n1 + 0.14, M.schwarz, 0.01);
+  const tvBild = new THREE.Mesh(new THREE.PlaneGeometry(1.17, 0.67), new THREE.MeshBasicMaterial({ toneMapped: false,
     map: textur(leinwand(256, 144, (c, b, h) => {
       const v = c.createLinearGradient(0, 0, b, h); v.addColorStop(0, "#14304f"); v.addColorStop(1, "#0b1424");
       c.fillStyle = v; c.fillRect(0, 0, b, h);
       ["#e50914", "#113ccf", "#00a8e1", "#1ce783", "#f5c518"].forEach((f, i) => { c.fillStyle = f; c.fillRect(20 + i * 44, 100, 36, 24); });
     })) }));
-  tvBild.position.copy(P(1.75, 1.15, T.n1 + 0.182)); g.add(tvBild);
+  tvBild.position.copy(P(tvMitte, 1.25, T.n1 + 0.142)); g.add(tvBild);
 
   // iPad an der Ostseite (anklickbar)
   quader(g, T.x1, T.x1 + 0.02, 0.97, 1.25, 2.39, 2.73, M.schwarz, 0.006);
