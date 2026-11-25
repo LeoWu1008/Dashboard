@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zuhause">
   <title>Zuhause</title>
-  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <main class="raster">
@@ -19,7 +19,7 @@
       <div id="uhrzeit" class="uhrzeit">--:--</div>
       <div id="datum" class="datum">&nbsp;</div>
       <div id="begruessung" class="begruessung">&nbsp;</div>
-      <div class="version">Version 4</div>
+      <div class="version">Version 5</div>
     </section>
 
     <!-- Wetter -->
@@ -37,15 +37,34 @@
     </section>
 
     <!-- Platzhalter für die nächsten Schritte -->
-    <section class="kachel platzhalter kalender">
+    <section class="kachel kalender">
       <h2>📅 Kalender</h2>
-      <p>Kommt in Schritt 3</p>
+      <div id="kalender-inhalt" class="scroll"><p class="leise">Lade …</p></div>
     </section>
 
-    <section class="kachel platzhalter todo">
-      <h2>✅ To Do</h2>
-      <p>Kommt in Schritt 3</p>
+    <section class="kachel todo">
+      <h2>✅ To Do <select id="todo-liste" class="todo-auswahl" hidden></select></h2>
+      <ul id="todo-inhalt" class="scroll todo-liste"><li class="leise">Lade …</li></ul>
+      <form id="todo-formular" class="todo-neu" hidden>
+        <input id="todo-eingabe" type="text" placeholder="Neue Aufgabe …" autocomplete="off" enterkeyhint="done">
+        <button type="submit">+</button>
+      </form>
     </section>
+
+    <!-- Fenster für die Microsoft-Anmeldung -->
+    <div id="anmeldung" class="anmeldung" hidden>
+      <div class="anmeldung-box">
+        <h3>Mit Microsoft verbinden</h3>
+        <p>1. Öffne auf diesem iPad oder deinem Handy:</p>
+        <a id="anmeldung-link" class="anmeldung-link" target="_blank" rel="noopener">microsoft.com/link</a>
+        <p>2. Gib diesen Code ein:</p>
+        <div id="anmeldung-code" class="anmeldung-code">········</div>
+        <button id="anmeldung-kopieren" class="knopf">Code kopieren</button>
+        <p>3. Melde dich mit deinem privaten Microsoft-Konto an und tippe auf „Annehmen“.</p>
+        <p id="anmeldung-status" class="leise">Warte auf deine Anmeldung …</p>
+        <button id="anmeldung-abbrechen" class="knopf leise-knopf">Abbrechen</button>
+      </div>
+    </div>
 
     <section class="kachel nachrichten">
       <h2>📰 Nachrichten <span id="nachrichten-stand" class="stand"></span></h2>
@@ -71,6 +90,6 @@
 
   </main>
 
-  <script src="app.js?v=4"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

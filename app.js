@@ -74,7 +74,10 @@ const WETTERCODES = {
 function wetterInfo(code, istTag = true) {
   const [symbol, text] = WETTERCODES[code] || ["❔", "Unbekannt"];
   // Nachts Mond statt Sonne
-  if (!istTag && (code === 0 || code === 1)) return ["🌙", text];
+  if (!istTag) {
+    const nacht = { "☀️": "🌙", "🌤️": "🌙", "⛅": "☁️", "🌦️": "🌧️" };
+    return [nacht[symbol] || symbol, text];
+  }
   return [symbol, text];
 }
 
@@ -251,6 +254,297 @@ document.querySelectorAll(".quelle").forEach(knopf => {
 
 
 /* =========================================================
+   MICROSOFT: Anmeldung über den Cloud-Helfer
+   ========================================================= */
+const KALENDER_TAGE = 7;
+const MICROSOFT_AKTUALISIEREN_MINUTEN = 5;
+
+function sitzung() {
+  try { return localStorage.getItem("ms-sitzung"); } catch { return null; }
+}
+
+// Anfrage an den Cloud-Helfer mit Anmeldung
+async function helfer(pfad, daten) {
+  const optionen = { headers: { Authorization: "Bearer " + (sitzung() || "") } };
+  if (daten) {
+    optionen.method = "POST";
+    optionen.headers["Content-Type"] = "application/json";
+    optionen.body = JSON.stringify(daten);
+  }
+  const antwort = await fetch(CLOUD_HELFER + pfad, optionen);
+  if (antwort.status === 401) {
+    try { localStorage.removeItem("ms-sitzung"); } catch {}
+    zeigeVerbinden();
+    throw new Error("nicht angemeldet");
+  }
+  if (!antwort.ok) throw new Error((await antwort.json().catch(() => ({}))).fehler || "Fehler " + antwort.status);
+  return antwort.json();
+}
+
+function zeigeVerbinden() {
+  const knopf = `<div class="verbinden">
+      <span>Noch nicht mit deinem Microsoft-Konto verbunden.</span>
+      <button class="knopf" onclick="anmeldungStarten()">Mit Microsoft verbinden</button>
+    </div>`;
+  document.getElementById("kalender-inhalt").innerHTML = knopf;
+  document.getElementById("todo-inhalt").innerHTML = `<li class="leise">Verbinde zuerst dein Microsoft-Konto (Kalender-Kachel).</li>`;
+  document.getElementById("todo-formular").hidden = true;
+  document.getElementById("todo-liste").hidden = true;
+}
+
+let anmeldungTimer = null;
+
+async function anmeldungStarten() {
+  const fenster = document.getElementById("anmeldung");
+  const status = document.getElementById("anmeldung-status");
+  fenster.hidden = false;
+  status.textContent = "Hole Code …";
+
+  try {
+    const r = await (await fetch(CLOUD_HELFER + "/auth/start", { method: "POST" })).json();
+    if (!r.code) throw new Error(r.fehler || "Kein Code erhalten");
+
+    document.getElementById("anmeldung-code").textContent = r.code;
+    const link = document.getElementById("anmeldung-link");
+    link.href = r.adresse;
+    link.textContent = r.adresse.replace("https://", "").replace("www.", "");
+    status.textContent = "Warte auf deine Anmeldung …";
+
+    clearInterval(anmeldungTimer);
+    anmeldungTimer = setInterval(async () => {
+      const p = await (await fetch(CLOUD_HELFER + "/auth/pruefen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vorgang: r.vorgang })
+      })).json();
+
+      if (p.status === "ok") {
+        clearInterval(anmeldungTimer);
+        try { localStorage.setItem("ms-sitzung", p.sitzung); } catch {}
+        status.textContent = "✅ Verbunden" + (p.name ? " als " + p.name : "") + "!";
+        setTimeout(() => { fenster.hidden = true; }, 1500);
+        ladeMicrosoft();
+      } else if (p.status === "abgelaufen") {
+        clearInterval(anmeldungTimer);
+        status.textContent = "Der Code ist abgelaufen. Bitte abbrechen und neu starten.";
+      } else if (p.status === "fehler") {
+        clearInterval(anmeldungTimer);
+        status.textContent = "⚠️ " + p.text;
+      }
+    }, (r.intervall || 5) * 1000);
+  } catch (e) {
+    status.textContent = "⚠️ " + e.message;
+  }
+}
+
+document.getElementById("anmeldung-abbrechen").addEventListener("click", () => {
+  clearInterval(anmeldungTimer);
+  document.getElementById("anmeldung").hidden = true;
+});
+
+document.getElementById("anmeldung-kopieren").addEventListener("click", async () => {
+  const code = document.getElementById("anmeldung-code").textContent;
+  try {
+    await navigator.clipboard.writeText(code);
+    document.getElementById("anmeldung-kopieren").textContent = "Kopiert ✓";
+  } catch {}
+});
+
+
+/* =========================================================
+   KALENDER
+   ========================================================= */
+function tagesName(datum) {
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+  const tag = new Date(datum); tag.setHours(0, 0, 0, 0);
+  const diff = Math.round((tag - heute) / 86400000);
+  if (diff === 0) return "Heute";
+  if (diff === 1) return "Morgen";
+  return tag.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" });
+}
+
+function uhrzeit(datum) {
+  return datum.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+}
+
+async function ladeKalender() {
+  const termine = await helfer("/kalender?tage=" + KALENDER_TAGE);
+  const box = document.getElementById("kalender-inhalt");
+  box.innerHTML = "";
+
+  if (termine.length === 0) {
+    box.innerHTML = `<p class="leise">Keine Termine in den nächsten ${KALENDER_TAGE} Tagen 🎉</p>`;
+    return;
+  }
+
+  const jetzt = new Date();
+  let letzterTag = "";
+
+  termine.forEach(t => {
+    // Graph liefert Ortszeit ohne Zeitzone, z. B. "2026-11-25T14:00:00.0000000"
+    const start = new Date(t.start.slice(0, 19));
+    const ende = new Date(t.ende.slice(0, 19));
+
+    const tag = tagesName(start);
+    if (tag !== letzterTag) {
+      const kopf = document.createElement("div");
+      kopf.className = "tag-titel";
+      kopf.textContent = tag;
+      box.appendChild(kopf);
+      letzterTag = tag;
+    }
+
+    const el = document.createElement("div");
+    el.className = "termin" + (ende < jetzt ? " vorbei" : "");
+
+    const zeit = document.createElement("div");
+    zeit.className = "termin-zeit";
+    zeit.innerHTML = t.ganztaegig ? "ganz&shy;tägig" : `${uhrzeit(start)}<br>${uhrzeit(ende)}`;
+
+    const text = document.createElement("div");
+    const titel = document.createElement("div");
+    titel.className = "termin-titel";
+    titel.textContent = t.titel;
+    text.appendChild(titel);
+    if (t.ort) {
+      const ort = document.createElement("div");
+      ort.className = "termin-ort";
+      ort.textContent = "📍 " + t.ort;
+      text.appendChild(ort);
+    }
+
+    el.append(zeit, text);
+    box.appendChild(el);
+  });
+}
+
+
+/* =========================================================
+   MICROSOFT TO DO
+   ========================================================= */
+let todoListen = [];
+let gewaehlteListe = null;
+
+async function ladeTodo() {
+  todoListen = await helfer("/todo");
+  const auswahl = document.getElementById("todo-liste");
+
+  if (!gewaehlteListe || !todoListen.find(l => l.id === gewaehlteListe)) {
+    let gemerkt = null;
+    try { gemerkt = localStorage.getItem("todo-liste"); } catch {}
+    gewaehlteListe = (todoListen.find(l => l.id === gemerkt) || todoListen[0] || {}).id;
+  }
+
+  auswahl.innerHTML = "";
+  todoListen.forEach(l => {
+    const option = document.createElement("option");
+    option.value = l.id;
+    option.textContent = `${l.name} (${l.aufgaben.length})`;
+    auswahl.appendChild(option);
+  });
+  auswahl.value = gewaehlteListe;
+  auswahl.hidden = todoListen.length < 2;
+  document.getElementById("todo-formular").hidden = !gewaehlteListe;
+
+  zeigeTodo();
+}
+
+function zeigeTodo() {
+  const box = document.getElementById("todo-inhalt");
+  box.innerHTML = "";
+  const liste = todoListen.find(l => l.id === gewaehlteListe);
+
+  if (!liste || liste.aufgaben.length === 0) {
+    box.innerHTML = `<li class="leise">Alles erledigt 🎉</li>`;
+    return;
+  }
+
+  const heute = new Date(); heute.setHours(0, 0, 0, 0);
+
+  // Wichtige zuerst
+  [...liste.aufgaben].sort((a, b) => b.wichtig - a.wichtig).forEach(a => {
+    const li = document.createElement("li");
+    li.className = "aufgabe";
+
+    const haken = document.createElement("button");
+    haken.className = "haken";
+    haken.textContent = "✓";
+    haken.setAttribute("aria-label", "Erledigt");
+    haken.addEventListener("click", () => abhaken(liste, a, li));
+
+    const text = document.createElement("div");
+    const titel = document.createElement("div");
+    titel.className = "aufgabe-titel";
+    titel.textContent = a.titel;
+    if (a.wichtig) titel.insertAdjacentHTML("afterbegin", '<span class="stern">★ </span>');
+    text.appendChild(titel);
+
+    if (a.faellig) {
+      const f = new Date(a.faellig.slice(0, 10) + "T00:00");
+      const info = document.createElement("div");
+      info.className = "aufgabe-info" + (f < heute ? " ueberfaellig" : "");
+      info.textContent = "Fällig: " + tagesName(f);
+      text.appendChild(info);
+    }
+
+    li.append(haken, text);
+    box.appendChild(li);
+  });
+}
+
+async function abhaken(liste, aufgabe, li) {
+  li.classList.add("erledigt");
+  try {
+    await helfer("/todo/erledigt", { liste: liste.id, aufgabe: aufgabe.id });
+    setTimeout(() => {
+      liste.aufgaben = liste.aufgaben.filter(a => a.id !== aufgabe.id);
+      ladeTodo().catch(() => zeigeTodo());
+    }, 800);
+  } catch (e) {
+    li.classList.remove("erledigt");
+    alert("Konnte nicht abgehakt werden: " + e.message);
+  }
+}
+
+document.getElementById("todo-liste").addEventListener("change", e => {
+  gewaehlteListe = e.target.value;
+  try { localStorage.setItem("todo-liste", gewaehlteListe); } catch {}
+  zeigeTodo();
+});
+
+document.getElementById("todo-formular").addEventListener("submit", async e => {
+  e.preventDefault();
+  const eingabe = document.getElementById("todo-eingabe");
+  const titel = eingabe.value.trim();
+  if (!titel || !gewaehlteListe) return;
+
+  eingabe.value = "";
+  eingabe.blur();
+  try {
+    const neu = await helfer("/todo/neu", { liste: gewaehlteListe, titel });
+    todoListen.find(l => l.id === gewaehlteListe).aufgaben.unshift(neu);
+    zeigeTodo();
+  } catch (fehler) {
+    eingabe.value = titel;
+    alert("Aufgabe konnte nicht angelegt werden: " + fehler.message);
+  }
+});
+
+
+async function ladeMicrosoft() {
+  if (!sitzung()) { zeigeVerbinden(); return; }
+  ladeKalender().catch(e => {
+    if (e.message !== "nicht angemeldet")
+      document.getElementById("kalender-inhalt").textContent = "⚠️ Kalender: " + e.message;
+  });
+  ladeTodo().catch(e => {
+    if (e.message !== "nicht angemeldet")
+      document.getElementById("todo-inhalt").textContent = "⚠️ To Do: " + e.message;
+  });
+}
+
+
+/* =========================================================
    START
    ========================================================= */
 aktualisiereUhr();
@@ -261,3 +555,6 @@ setInterval(ladeWetter, WETTER_AKTUALISIEREN_MINUTEN * 60 * 1000);
 
 ladeNachrichten();
 setInterval(ladeNachrichten, NACHRICHTEN_AKTUALISIEREN_MINUTEN * 60 * 1000);
+
+ladeMicrosoft();
+setInterval(ladeMicrosoft, MICROSOFT_AKTUALISIEREN_MINUTEN * 60 * 1000);
