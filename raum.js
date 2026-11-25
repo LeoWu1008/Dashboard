@@ -591,11 +591,11 @@ let ipadScreen, ipadRahmen;
     const k = (x, y, w, h) => { c.fillStyle = "#1a1d24"; c.beginPath(); c.roundRect(x, y, w, h, 12); c.fill(); };
     k(14, 14, 160, 90); k(14, 114, 160, 160); k(184, 14, 152, 170); k(346, 14, 152, 170); k(184, 194, 152, 120); k(346, 194, 152, 120); k(14, 326, 484, 22);
     c.fillStyle = "#f2f3f5"; c.font = "300 54px Helvetica, Arial"; c.fillText("12:00", 26, 78);
-    c.fillStyle = "#ffb547"; c.fillRect(196, 40, 4, 40); c.fillRect(196, 92, 4, 40);
+    c.fillStyle = "#5b8cff"; c.fillRect(196, 40, 4, 40); c.fillRect(196, 92, 4, 40);
     c.fillStyle = "#34c759"; c.beginPath(); c.roundRect(440, 214, 40, 22, 11); c.fill();
   })) }));
   ipadScreen.position.copy(P(T.x1 + 0.022, 1.11, 2.56)); ipadScreen.rotation.y = Math.PI / 2; g.add(ipadScreen);
-  ipadRahmen = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.38), new THREE.MeshBasicMaterial({ color: 0xffb547, transparent: true, opacity: 0, depthWrite: false }));
+  ipadRahmen = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.38), new THREE.MeshBasicMaterial({ color: 0x5b8cff, transparent: true, opacity: 0, depthWrite: false }));
   ipadRahmen.position.copy(P(T.x1 + 0.021, 1.11, 2.56)); ipadRahmen.rotation.y = Math.PI / 2; g.add(ipadRahmen);
 }
 

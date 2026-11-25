@@ -2,13 +2,17 @@
    FARBEN – hier kannst du das Aussehen ändern
    ============================================ */
 :root {
-  --hintergrund: #0f1115;
-  --kachel: #1a1d24;
-  --kachel-rand: #262a33;
-  --text: #f2f3f5;
-  --text-leise: #9aa0ab;
-  --akzent: #ffb547;        /* Farbe für Hervorhebungen */
-  --radius: 22px;           /* Rundung der Kacheln */
+  --hintergrund: #0b0c10;
+  --kachel: rgba(18, 22, 34, 0.86);        /* Glasfläche der Kacheln */
+  --kachel-rand: rgba(120, 150, 255, 0.14);
+  --text: #f4f6fb;
+  --text-leise: #8e97ab;
+  --akzent: #5b8cff;        /* Farbe für Hervorhebungen (Blau) */
+  --akzent-hell: #a9c0ff;
+  --akzent-verlauf: linear-gradient(180deg, #6f9bff, #3c62e3);
+  --leuchten: rgba(70, 115, 255, 0.35);    /* blauer Schimmer der Kacheln */
+  --erfolg: #3ddc97;
+  --radius: 20px;           /* Rundung der Kacheln */
   --abstand: 16px;          /* Abstand zwischen Kacheln */
 }
 
@@ -16,7 +20,11 @@
 
 html, body {
   height: 100%;
-  background: var(--hintergrund);
+  background:
+    radial-gradient(1200px 700px at 50% -10%, #2a2d35 0%, transparent 60%),
+    radial-gradient(900px 600px at 50% 120%, #10131c 0%, transparent 70%),
+    var(--hintergrund);
+  background-attachment: fixed;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -68,21 +76,61 @@ html, body {
 /* ============================================
    KACHELN
    ============================================ */
+/* Glas-Kachel mit leuchtendem blauen Rand (oben links am hellsten) */
 .kachel {
-  background: var(--kachel);
-  border: 1px solid var(--kachel-rand);
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(160deg, rgba(40, 48, 72, 0.55) 0%, rgba(14, 17, 27, 0.9) 45%, rgba(8, 10, 16, 0.95) 100%);
   border-radius: var(--radius);
   padding: 22px 24px;
   overflow: hidden;
   min-height: 0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 18px 40px -12px rgba(0, 0, 0, 0.7),
+    0 14px 34px -14px rgba(70, 115, 255, 0.55),
+    0 0 34px -10px var(--leuchten);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+/* Rand als Farbverlauf */
+.kachel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.2px;
+  background: linear-gradient(140deg,
+    rgba(190, 210, 255, 0.95) 0%,
+    rgba(100, 135, 255, 0.45) 16%,
+    rgba(70, 100, 220, 0.10) 42%,
+    rgba(70, 100, 220, 0.08) 68%,
+    rgba(110, 150, 255, 0.70) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Glanz auf der Oberfläche */
+.kachel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 60% at 0% 0%, rgba(120, 150, 255, 0.10), transparent 55%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 30%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .kachel h2 {
-  font-size: 15px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-leise);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
   margin-bottom: 14px;
 }
 
@@ -93,18 +141,26 @@ html, body {
 .uhrzeit {
   font-size: clamp(48px, min(9vw, 11vh), 110px);
   font-weight: 200;
+  background: linear-gradient(180deg, #ffffff 30%, var(--akzent-hell));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .datum       { font-size: 22px; margin-top: 8px; }
-.begruessung { font-size: 17px; color: var(--akzent); margin-top: 6px; }
+.begruessung { font-size: 17px; color: var(--akzent-hell); margin-top: 6px; font-weight: 600; }
 .version     { font-size: 11px; color: var(--text-leise); opacity: 0.5; margin-top: 10px; }
 
 /* Wetter */
 .wetter { display: flex; flex-direction: column; }
 .wetter-jetzt  { display: flex; align-items: center; gap: 20px; }
 .wetter-symbol { font-size: 72px; line-height: 1; }
-.wetter-temp   { font-size: 56px; font-weight: 300; line-height: 1; }
+.wetter-temp   {
+  font-size: 56px; font-weight: 300; line-height: 1;
+  background: linear-gradient(180deg, #ffffff 30%, var(--akzent-hell));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
 .wetter-text   { font-size: 19px; margin-top: 4px; }
 .wetter-details{ font-size: 15px; color: var(--text-leise); margin-top: 4px; }
 
@@ -117,7 +173,8 @@ html, body {
 }
 .tag {
   text-align: center;
-  background: rgba(255,255,255,0.04);
+  background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015));
+  border: 1px solid rgba(130,160,255,0.12);
   border-radius: 14px;
   padding: 10px 4px;
 }
@@ -132,16 +189,21 @@ html, body {
 .stand { float: right; text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 13px; }
 .quellen { display: flex; gap: 8px; margin-bottom: 12px; }
 .quelle {
-  background: rgba(255,255,255,0.06);
+  background: rgba(14,18,30,0.8);
   color: var(--text-leise);
-  border: none;
+  border: 1px solid rgba(120,150,255,0.28);
   border-radius: 999px;
-  padding: 7px 16px;
-  font-size: 15px;
-  font-weight: 600;
+  padding: 6px 16px;
+  font-size: 14px;
+  font-weight: 700;
   font-family: inherit;
 }
-.quelle.aktiv { background: var(--akzent); color: #1a1a1a; }
+.quelle.aktiv {
+  background: var(--akzent-verlauf);
+  color: #fff;
+  border-color: rgba(170,195,255,0.7);
+  box-shadow: 0 0 16px -2px var(--leuchten), inset 0 1px 0 rgba(255,255,255,0.3);
+}
 
 .nachrichten-liste {
   list-style: none;
@@ -179,16 +241,22 @@ html, body {
 .scroll { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
 .knopf {
-  background: var(--akzent);
-  color: #1a1a1a;
-  border: none;
-  border-radius: 12px;
-  padding: 11px 18px;
-  font-size: 16px;
-  font-weight: 600;
+  background: var(--akzent-verlauf);
+  color: #fff;
+  border: 1px solid rgba(170,195,255,0.55);
+  border-radius: 999px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 700;
   font-family: inherit;
+  box-shadow: 0 0 18px -4px var(--leuchten), inset 0 1px 0 rgba(255,255,255,0.3);
 }
-.leise-knopf { background: rgba(255,255,255,0.08); color: var(--text-leise); }
+.leise-knopf {
+  background: rgba(14,18,30,0.8);
+  color: var(--text);
+  border-color: rgba(120,150,255,0.28);
+  box-shadow: none;
+}
 
 /* Kalender */
 .tag-titel {
@@ -249,7 +317,7 @@ html, body {
   line-height: 22px;
   padding: 0;
 }
-.aufgabe.erledigt .haken { background: #34c759; border-color: #34c759; color: #fff; }
+.aufgabe.erledigt .haken { background: var(--akzent-verlauf); border-color: var(--akzent-hell); color: #fff; }
 .aufgabe-titel { font-size: 16px; line-height: 1.3; }
 .aufgabe-info { font-size: 12px; color: var(--text-leise); margin-top: 2px; }
 .aufgabe-info.ueberfaellig { color: #ff6b6b; }
@@ -271,12 +339,13 @@ html, body {
 }
 .todo-neu button {
   width: 44px;
-  background: var(--akzent);
-  border: none;
+  background: var(--akzent-verlauf);
+  border: 1px solid rgba(170,195,255,0.55);
   border-radius: 12px;
   font-size: 22px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: #fff;
+  box-shadow: 0 0 16px -4px var(--leuchten);
 }
 
 /* Verbinden-Hinweis in den Kacheln */
@@ -323,9 +392,9 @@ html, body {
 .alle-knoepfe { display: flex; gap: 6px; }
 .alle-knoepfe[hidden] { display: none; }
 .mini-knopf {
-  background: rgba(255,255,255,0.08);
+  background: rgba(14,18,30,0.8);
   color: var(--text);
-  border: none;
+  border: 1px solid rgba(120,150,255,0.28);
   border-radius: 999px;
   padding: 5px 11px;
   font-size: 12px;
@@ -382,7 +451,7 @@ html, body {
   border-radius: 50%;
   transition: transform 0.25s;
 }
-.schalter input:checked + span { background: #34c759; }
+.schalter input:checked + span { background: var(--akzent-verlauf); box-shadow: 0 0 14px -2px var(--leuchten), inset 0 1px 0 rgba(255,255,255,0.3); }
 .schalter input:checked + span::before { transform: translateX(21px); }
 
 /* Licht-Fenster */
@@ -424,8 +493,9 @@ html, body {
 /* Börsen-Laufband */
 .ticker {
   grid-area: ticker;
-  background: var(--kachel);
-  border: 1px solid var(--kachel-rand);
+  background: linear-gradient(180deg, rgba(30,36,54,0.7), rgba(10,12,18,0.9));
+  border: 1px solid rgba(120,150,255,0.22);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 24px -10px var(--leuchten);
   border-radius: 14px;
   overflow: hidden;
   display: flex;
@@ -446,7 +516,7 @@ html, body {
 .ticker-eintrag { display: inline-flex; align-items: baseline; gap: 8px; padding: 0 26px; font-size: 16px; }
 .ticker-name { font-weight: 600; }
 .ticker-kurs { font-variant-numeric: tabular-nums; }
-.ticker-plus  { color: #34c759; font-variant-numeric: tabular-nums; font-size: 15px; }
+.ticker-plus  { color: var(--erfolg); font-variant-numeric: tabular-nums; font-size: 15px; }
 .ticker-minus { color: #ff5a5a; font-variant-numeric: tabular-nums; font-size: 15px; }
 .ticker-trenner { color: var(--kachel-rand); }
 
@@ -457,9 +527,10 @@ html, body {
   position: absolute;
   top: 14px;
   right: 14px;
-  background: rgba(255,255,255,0.08);
+  z-index: 3;
+  background: rgba(14,18,30,0.8);
   color: var(--text);
-  border: none;
+  border: 1px solid rgba(120,150,255,0.35);
   border-radius: 999px;
   padding: 8px 14px;
   font-size: 14px;
@@ -501,7 +572,7 @@ html, body {
   width: 38px; height: 38px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 50%;
-  background: rgba(255,181,71,0.18);
+  background: rgba(91,140,255,0.2);
   font-size: 18px;
 }
 .raum-status-text { display: flex; flex-direction: column; line-height: 1.2; }
@@ -541,7 +612,7 @@ html, body {
   color: var(--text);
 }
 .raum-rund:active svg { transform: scale(0.94); }
-.raum-rund-akzent svg { background: var(--akzent); color: #1a1a1a; border-color: transparent; }
+.raum-rund-akzent svg { background: var(--akzent-verlauf); color: #fff; border-color: rgba(170,195,255,0.6); box-shadow: 0 0 18px -4px var(--leuchten); }
 
 /* Wetter unten rechts */
 .raum-wetter {
@@ -606,7 +677,7 @@ html, body {
 }
 .raum-marker-text b { font-size: 12px; }
 .raum-marker-status { font-size: 11px; color: var(--text-leise); }
-.raum-marker-ipad .raum-marker-kreis { background: var(--akzent); color: #1a1a1a; border-color: rgba(255,255,255,0.7); }
+.raum-marker-ipad .raum-marker-kreis { background: var(--akzent-verlauf); color: #fff; border-color: rgba(200,215,255,0.8); box-shadow: 0 0 18px -2px var(--leuchten); }
 
 /* Hinweis beim ersten Start */
 .raum-tipp {
