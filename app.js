@@ -22,6 +22,8 @@ function aktualisiereUhr() {
 
   document.getElementById("uhrzeit").textContent =
     jetzt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  const raumUhr = document.getElementById("raum-uhr");
+  if (raumUhr) raumUhr.textContent = document.getElementById("uhrzeit").textContent;
 
   document.getElementById("datum").textContent =
     jetzt.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
@@ -688,6 +690,7 @@ function zeigeLichter() {
   });
 
   zeigeKurzbefehlLichter(liste);
+  if (window.raumAktualisieren) window.raumAktualisieren();
 }
 
 // Befehl an ein Licht schicken (Anzeige wird sofort angepasst)

@@ -9,17 +9,18 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zuhause">
   <title>Zuhause</title>
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
   <main class="raster">
 
     <!-- Uhr & Datum -->
     <section class="kachel uhr">
+      <button id="zum-raum" class="raum-knopf">🏠 Zimmer</button>
       <div id="uhrzeit" class="uhrzeit">--:--</div>
       <div id="datum" class="datum">&nbsp;</div>
       <div id="begruessung" class="begruessung">&nbsp;</div>
-      <div class="version">Version 11</div>
+      <div class="version">Version 12</div>
     </section>
 
     <!-- Wetter -->
@@ -137,6 +138,32 @@
 
   </main>
 
-  <script src="app.js?v=11"></script>
+  <!-- 3D-Zimmer (Startansicht) -->
+  <div id="raum" class="raum">
+    <div id="raum-3d" class="raum-3d"></div>
+    <div id="raum-labels" class="raum-labels"></div>
+    <div class="raum-kopf">
+      <div>
+        <div class="raum-titel">Mein Zimmer</div>
+        <div class="raum-hinweis">Tippe auf ein Licht zum Schalten – oder aufs iPad für das Dashboard</div>
+      </div>
+      <div class="raum-kopf-rechts">
+        <div id="raum-uhr" class="raum-uhr">--:--</div>
+        <button id="zum-dashboard" class="knopf">Dashboard</button>
+      </div>
+    </div>
+    <div id="raum-popup" class="raum-popup" hidden>
+      <div class="raum-popup-name"></div>
+      <div class="raum-popup-info"></div>
+      <div class="knopf-reihe">
+        <button class="knopf" data-aktion="an">An</button>
+        <button class="knopf leise-knopf" data-aktion="aus">Aus</button>
+        <button class="knopf leise-knopf" data-aktion="einstellen">Farbe …</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js?v=12"></script>
+  <script type="module" src="raum.js?v=12"></script>
 </body>
 </html>
