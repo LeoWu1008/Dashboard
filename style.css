@@ -477,49 +477,160 @@ html, body {
 .raum-3d, .raum-3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .raum-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 
-.raum-kopf {
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  padding: calc(18px + env(safe-area-inset-top)) 22px 18px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  background: linear-gradient(var(--hintergrund), transparent);
-  pointer-events: none;
-}
-.raum-kopf > * { pointer-events: auto; }
-.raum-titel { font-size: 26px; font-weight: 600; }
-.raum-hinweis { font-size: 14px; color: var(--text-leise); margin-top: 4px; }
-.raum-kopf-rechts { display: flex; align-items: center; gap: 14px; }
-.raum-uhr { font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums; }
+.raum-effekt { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 
-.raum-label {
+/* Statusleiste oben (Pille) */
+.raum-status {
+  position: absolute;
+  top: calc(16px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 18px 8px 8px;
+  background: rgba(16,18,23,0.78);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 999px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  white-space: nowrap;
+}
+.raum-status-icon {
+  width: 38px; height: 38px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,181,71,0.18);
+  font-size: 18px;
+}
+.raum-status-text { display: flex; flex-direction: column; line-height: 1.2; }
+.raum-status-text b { font-size: 15px; }
+.raum-status-text span { font-size: 12px; color: var(--text-leise); }
+.raum-status-trenner { width: 1px; height: 26px; background: rgba(255,255,255,0.12); }
+.raum-uhr { font-size: 22px; font-weight: 300; font-variant-numeric: tabular-nums; }
+
+/* Bedienleiste unten links */
+.raum-leiste {
+  position: absolute;
+  left: 20px;
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+}
+.raum-rund {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  color: var(--text-leise);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+}
+.raum-rund svg {
+  box-sizing: content-box;
+  padding: 14px;
+  border-radius: 50%;
+  background: rgba(16,18,23,0.8);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text);
+}
+.raum-rund:active svg { transform: scale(0.94); }
+.raum-rund-akzent svg { background: var(--akzent); color: #1a1a1a; border-color: transparent; }
+
+/* Wetter unten rechts */
+.raum-wetter {
+  position: absolute;
+  right: 24px;
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  text-align: right;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+}
+.raum-wetter-oben { display: flex; align-items: baseline; justify-content: flex-end; gap: 10px; }
+#raum-wetter-temp { font-size: 40px; font-weight: 300; }
+#raum-wetter-text { font-size: 17px; font-weight: 600; }
+.raum-wetter-details { font-size: 13px; color: var(--text-leise); margin-top: 2px; }
+.raum-wetter-ort { font-size: 12px; color: var(--text-leise); opacity: 0.7; margin-top: 2px; }
+
+/* Licht-Symbole im Plan */
+.raum-marker {
   position: absolute;
   left: 0; top: 0;
   pointer-events: auto;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(20,22,28,0.82);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  color: var(--text);
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 999px;
-  padding: 6px 11px;
-  font-size: 13px;
-  font-weight: 600;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
   font-family: inherit;
+  color: var(--text);
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+.raum-marker-kreis {
+  width: 40px; height: 40px;
+  flex: none;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(30,32,38,0.92);
+  border: 2px solid rgba(255,255,255,0.18);
+  color: #9aa0ab;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  transition: background 0.25s, color 0.25s, box-shadow 0.25s, transform 0.15s;
+}
+.raum-marker:active .raum-marker-kreis { transform: scale(0.9); }
+.raum-marker.an .raum-marker-kreis {
+  background: var(--led-farbe);
+  border-color: rgba(255,255,255,0.75);
+  color: #1a1a1a;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--led-farbe) 30%, transparent), 0 0 22px var(--led-farbe);
+}
+.raum-marker.unbekannt .raum-marker-kreis { opacity: 0.6; }
+.raum-marker-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  padding: 4px 9px;
+  border-radius: 9px;
+  background: rgba(16,18,23,0.72);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   white-space: nowrap;
-  margin-top: -6px;
 }
-.raum-label-punkt {
-  width: 10px; height: 10px; border-radius: 50%;
-  background: var(--led-farbe, #555);
+.raum-marker-text b { font-size: 12px; }
+.raum-marker-status { font-size: 11px; color: var(--text-leise); }
+.raum-marker-ipad .raum-marker-kreis { background: var(--akzent); color: #1a1a1a; border-color: rgba(255,255,255,0.7); }
+
+/* Hinweis beim ersten Start */
+.raum-tipp {
+  position: absolute;
+  left: 50%;
+  top: calc(80px + env(safe-area-inset-top));
+  transform: translateX(-50%);
+  background: rgba(16,18,23,0.85);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 9px 16px;
+  font-size: 13px;
+  color: var(--text-leise);
+  transition: opacity 0.6s;
+  white-space: nowrap;
 }
-.raum-label.an .raum-label-punkt { box-shadow: 0 0 8px var(--led-farbe); }
-.raum-label-status { color: var(--text-leise); font-weight: 400; }
-.raum-label-ipad { background: var(--akzent); color: #1a1a1a; border-color: transparent; }
+.raum-tipp.weg { opacity: 0; pointer-events: none; }
+.raum-tipp[hidden] { display: none; }
+
+@media (orientation: portrait) {
+  .raum-wetter { right: 18px; }
+  #raum-wetter-temp { font-size: 32px; }
+  .raum-tipp { white-space: normal; text-align: center; width: 80%; }
+}
 
 .raum-popup {
   position: absolute;

@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zuhause">
   <title>Zuhause</title>
-  <link rel="stylesheet" href="style.css?v=13">
+  <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
   <main class="raster">
@@ -20,7 +20,7 @@
       <div id="uhrzeit" class="uhrzeit">--:--</div>
       <div id="datum" class="datum">&nbsp;</div>
       <div id="begruessung" class="begruessung">&nbsp;</div>
-      <div class="version">Version 13</div>
+      <div class="version">Version 14</div>
     </section>
 
     <!-- Wetter -->
@@ -141,29 +141,53 @@
   <!-- 3D-Zimmer (Startansicht) -->
   <div id="raum" class="raum">
     <div id="raum-3d" class="raum-3d"></div>
+    <canvas id="raum-effekt" class="raum-effekt"></canvas>
     <div id="raum-labels" class="raum-labels"></div>
-    <div class="raum-kopf">
-      <div>
-        <div class="raum-titel">Mein Zimmer</div>
-        <div class="raum-hinweis">Tippe auf ein Licht zum Schalten – oder aufs iPad für das Dashboard</div>
-      </div>
-      <div class="raum-kopf-rechts">
-        <div id="raum-uhr" class="raum-uhr">--:--</div>
-        <button id="zum-dashboard" class="knopf">Dashboard</button>
-      </div>
+
+    <!-- Statusleiste oben -->
+    <div class="raum-status">
+      <span class="raum-status-icon">🏠</span>
+      <span class="raum-status-text"><b>Mein Zimmer</b><span id="raum-licht-zahl">…</span></span>
+      <span class="raum-status-trenner"></span>
+      <span id="raum-uhr" class="raum-uhr">--:--</span>
     </div>
+
+    <!-- Bedienleiste unten links -->
+    <div class="raum-leiste">
+      <button id="raum-alle-aus" class="raum-rund" aria-label="Alle Lichter aus">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3Z"/><path d="M3 3l18 18"/></svg>
+        <span>Alle aus</span>
+      </button>
+      <button id="raum-alle-an" class="raum-rund" aria-label="Alle Lichter an">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 2a7 7 0 0 0-4 12.74V17a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-2.26A7 7 0 0 0 12 2Zm-2 18h4a1 1 0 0 1 0 2h-4a1 1 0 0 1 0-2Z"/></svg>
+        <span>Alle an</span>
+      </button>
+      <button id="zum-dashboard" class="raum-rund raum-rund-akzent" aria-label="Dashboard öffnen">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M4 4h7v9H4zM13 4h7v5h-7zM13 11h7v9h-7zM4 15h7v5H4z"/></svg>
+        <span>Dashboard</span>
+      </button>
+    </div>
+
+    <!-- Wetter unten rechts -->
+    <div class="raum-wetter">
+      <div class="raum-wetter-oben"><span id="raum-wetter-temp">--°</span><span id="raum-wetter-text"></span></div>
+      <div id="raum-wetter-details" class="raum-wetter-details"></div>
+      <div class="raum-wetter-ort">Wietmarschen</div>
+    </div>
+
+    <div id="raum-tipp" class="raum-tipp" hidden>Tippen = Licht an/aus · Gedrückt halten = Farbe &amp; Helligkeit · Wischen = Raum drehen</div>
+
     <div id="raum-popup" class="raum-popup" hidden>
       <div class="raum-popup-name"></div>
       <div class="raum-popup-info"></div>
       <div class="knopf-reihe">
         <button class="knopf" data-aktion="an">An</button>
         <button class="knopf leise-knopf" data-aktion="aus">Aus</button>
-        <button class="knopf leise-knopf" data-aktion="einstellen">Farbe …</button>
       </div>
     </div>
   </div>
 
-  <script src="app.js?v=13"></script>
-  <script type="module" src="raum.js?v=13"></script>
+  <script src="app.js?v=14"></script>
+  <script type="module" src="raum.js?v=14"></script>
 </body>
 </html>
