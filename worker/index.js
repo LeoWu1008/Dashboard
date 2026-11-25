@@ -290,6 +290,115 @@ async function todoNeu(env, listeId, titel) {
 }
 
 
+/* ---------- Govee-Lichter ---------- */
+
+const GOVEE = "https://openapi.api.govee.com/router/api/v1";
+
+async function goveeAnfrage(env, pfad, body, schluessel) {
+  const key = schluessel || await env.SPEICHER.get("govee:schluessel");
+  if (!key) throw new Fehler(409, "Govee ist noch nicht verbunden");
+  const antwort = await fetch(GOVEE + pfad, {
+    method: body ? "POST" : "GET",
+    headers: { "Govee-API-Key": key, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const daten = await antwort.json().catch(() => ({}));
+  if (antwort.status === 401 || antwort.status === 403) throw new Fehler(409, "Govee-Schlüssel ungültig");
+  if (antwort.status === 429) throw new Fehler(429, "Govee: zu viele Anfragen, bitte kurz warten");
+  if (!antwort.ok || (daten.code && daten.code !== 200)) {
+    throw new Fehler(502, "Govee: " + (daten.msg || daten.message || antwort.status));
+  }
+  return daten;
+}
+
+async function goveeSchluesselSpeichern(env, schluessel) {
+  schluessel = String(schluessel || "").trim();
+  if (!/^[A-Za-z0-9-]{20,80}$/.test(schluessel)) throw new Fehler(400, "Das sieht nicht wie ein Govee-Schlüssel aus");
+  const daten = await goveeAnfrage(env, "/user/devices", null, schluessel);
+  await env.SPEICHER.put("govee:schluessel", schluessel);
+  await env.SPEICHER.put("govee:geraete", JSON.stringify(daten.data || []), { expirationTtl: 6 * 3600 });
+  return { ok: true, anzahl: (daten.data || []).length };
+}
+
+// Geräteliste (6 Stunden zwischengespeichert, Govee erlaubt nur begrenzt viele Anfragen)
+async function goveeGeraeteListe(env, neu = false) {
+  if (!neu) {
+    const gespeichert = await env.SPEICHER.get("govee:geraete");
+    if (gespeichert) return JSON.parse(gespeichert);
+  }
+  const daten = await goveeAnfrage(env, "/user/devices");
+  await env.SPEICHER.put("govee:geraete", JSON.stringify(daten.data || []), { expirationTtl: 6 * 3600 });
+  return daten.data || [];
+}
+
+function faehigkeit(geraet, instanz) {
+  return (geraet.capabilities || []).find(c => c.instance === instanz);
+}
+
+async function goveeLichter(env) {
+  const geraete = (await goveeGeraeteListe(env)).filter(g => faehigkeit(g, "powerSwitch"));
+
+  return Promise.all(geraete.map(async g => {
+    const temp = faehigkeit(g, "colorTemperatureK");
+    const licht = {
+      sku: g.sku,
+      device: g.device,
+      name: g.deviceName || g.sku,
+      kann: {
+        helligkeit: !!faehigkeit(g, "brightness"),
+        farbe: !!faehigkeit(g, "colorRgb"),
+        temperatur: temp ? { min: temp.parameters?.range?.min || 2000, max: temp.parameters?.range?.max || 9000 } : null
+      },
+      online: null, an: null, helligkeit: null, farbe: null, temperatur: null
+    };
+    try {
+      const zustand = await goveeAnfrage(env, "/device/state", {
+        requestId: crypto.randomUUID(),
+        payload: { sku: g.sku, device: g.device }
+      });
+      for (const c of zustand.payload?.capabilities || []) {
+        const wert = c.state?.value;
+        if (c.instance === "online") licht.online = wert === true || wert === "true";
+        if (c.instance === "powerSwitch") licht.an = wert === 1;
+        if (c.instance === "brightness") licht.helligkeit = wert;
+        if (c.instance === "colorRgb") licht.farbe = wert;
+        if (c.instance === "colorTemperatureK") licht.temperatur = wert;
+      }
+    } catch (e) {
+      licht.fehler = e.message;
+    }
+    return licht;
+  }));
+}
+
+async function goveeSchalten(env, { sku, device, art, wert }) {
+  const geraet = (await goveeGeraeteListe(env)).find(g => g.sku === sku && g.device === device);
+  if (!geraet) throw new Fehler(404, "Licht nicht gefunden");
+
+  const arten = {
+    an:          ["devices.capabilities.on_off",        "powerSwitch",       v => (v ? 1 : 0)],
+    helligkeit:  ["devices.capabilities.range",         "brightness",        v => Math.max(1, Math.min(100, Math.round(v)))],
+    farbe:       ["devices.capabilities.color_setting", "colorRgb",          v => Math.max(0, Math.min(0xffffff, Math.round(v)))],
+    temperatur:  ["devices.capabilities.color_setting", "colorTemperatureK", v => Math.round(v)]
+  };
+  const a = arten[art];
+  if (!a) throw new Fehler(400, "Unbekannte Aktion");
+  if (!faehigkeit(geraet, a[1])) throw new Fehler(400, "Das kann dieses Licht nicht");
+
+  await goveeAnfrage(env, "/device/control", {
+    requestId: crypto.randomUUID(),
+    payload: { sku, device, capability: { type: a[0], instance: a[1], value: a[2](wert) } }
+  });
+  return { ok: true };
+}
+
+async function goveeAlle(env, an) {
+  const geraete = (await goveeGeraeteListe(env)).filter(g => faehigkeit(g, "powerSwitch"));
+  await Promise.allSettled(geraete.map(g => goveeSchalten(env, { sku: g.sku, device: g.device, art: "an", wert: an })));
+  return { ok: true };
+}
+
+
 /* ---------- Verteiler ---------- */
 
 export default {
@@ -333,6 +442,24 @@ export default {
           await sitzungPruefen(request, env);
           if (!body.titel || !body.liste) throw new Fehler(400, "Titel fehlt");
           return json(await todoNeu(env, body.liste, String(body.titel).slice(0, 255)), request);
+
+        case "/govee/schluessel":
+          await sitzungPruefen(request, env);
+          return json(await goveeSchluesselSpeichern(env, body.schluessel), request);
+
+        case "/govee/lichter":
+          await sitzungPruefen(request, env);
+          if (!(await env.SPEICHER.get("govee:schluessel"))) return json({ verbunden: false, lichter: [] }, request);
+          if (url.searchParams.get("neu")) await goveeGeraeteListe(env, true);
+          return json({ verbunden: true, lichter: await goveeLichter(env) }, request);
+
+        case "/govee/schalten":
+          await sitzungPruefen(request, env);
+          return json(await goveeSchalten(env, body), request);
+
+        case "/govee/alle":
+          await sitzungPruefen(request, env);
+          return json(await goveeAlle(env, !!body.an), request);
 
         default:
           return json({ fehler: "Nicht gefunden" }, request, 404);

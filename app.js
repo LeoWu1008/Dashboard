@@ -326,6 +326,7 @@ async function anmeldungStarten() {
         status.textContent = "✅ Verbunden" + (p.name ? " als " + p.name : "") + "!";
         setTimeout(() => { fenster.hidden = true; }, 1500);
         ladeMicrosoft();
+        ladeLichter();
       } else if (p.status === "abgelaufen") {
         clearInterval(anmeldungTimer);
         status.textContent = "Der Code ist abgelaufen. Bitte abbrechen und neu starten.";
@@ -550,6 +551,214 @@ async function ladeMicrosoft() {
 
 
 /* =========================================================
+   LICHT (Govee über den Cloud-Helfer)
+   ========================================================= */
+const LICHT_AKTUALISIEREN_MINUTEN = 2;   // Govee erlaubt nur begrenzt viele Anfragen pro Tag
+
+const WEISSTOENE = [
+  { name: "Warm",    kelvin: 2700, farbe: "#ffc27a" },
+  { name: "Neutral", kelvin: 4000, farbe: "#ffe4c2" },
+  { name: "Kalt",    kelvin: 6500, farbe: "#e6efff" }
+];
+const FARBEN = ["#ff2a2a", "#ff7a00", "#ffd000", "#3ddc5a", "#00c8ff", "#2a5bff", "#8a2aff", "#ff2ab8"];
+
+let lichter = [];
+let offenesLicht = null;
+
+function rgbZuHex(wert) { return "#" + Number(wert).toString(16).padStart(6, "0"); }
+function hexZuRgb(hex) { return parseInt(hex.slice(1), 16); }
+
+function lichtFarbe(l) {
+  if (l.farbe && l.farbe > 0 && !l.temperatur) return rgbZuHex(l.farbe);
+  if (l.temperatur) return l.temperatur < 3500 ? "#ffc27a" : l.temperatur < 5000 ? "#ffe4c2" : "#e6efff";
+  if (l.farbe && l.farbe > 0) return rgbZuHex(l.farbe);
+  return "#ffd27a";
+}
+
+async function ladeLichter(neu = false) {
+  if (!sitzung()) {
+    document.getElementById("licht-liste").innerHTML = `<li class="leise">Verbinde zuerst dein Microsoft-Konto (Kalender-Kachel).</li>`;
+    return;
+  }
+  try {
+    const r = await helfer("/govee/lichter" + (neu ? "?neu=1" : ""));
+    if (!r.verbunden) { zeigeGoveeVerbinden(); return; }
+    lichter = r.lichter;
+    zeigeLichter();
+  } catch (e) {
+    if (e.message === "Govee-Schlüssel ungültig") { zeigeGoveeVerbinden(e.message); return; }
+    if (e.message !== "nicht angemeldet") document.getElementById("licht-liste").textContent = "⚠️ " + e.message;
+  }
+}
+
+function zeigeGoveeVerbinden(hinweis) {
+  document.getElementById("alle-knoepfe").hidden = true;
+  const liste = document.getElementById("licht-liste");
+  liste.innerHTML = `<li class="verbinden"><span></span><button class="knopf">Govee verbinden</button></li>`;
+  liste.querySelector("span").textContent = hinweis ? "⚠️ " + hinweis : "Govee ist noch nicht verbunden.";
+  liste.querySelector("button").addEventListener("click", () => {
+    document.getElementById("govee-status").textContent = "";
+    document.getElementById("govee-fenster").hidden = false;
+    document.getElementById("govee-eingabe").focus();
+  });
+}
+
+function zeigeLichter() {
+  const liste = document.getElementById("licht-liste");
+  liste.innerHTML = "";
+  document.getElementById("alle-knoepfe").hidden = lichter.length < 2;
+
+  if (lichter.length === 0) {
+    liste.innerHTML = `<li class="leise">Keine steuerbaren Govee-Lichter gefunden.</li>`;
+    return;
+  }
+
+  lichter.forEach(l => {
+    const li = document.createElement("li");
+    li.className = "licht" + (l.an ? " an" : "") + (l.online === false ? " offline" : "");
+    li.style.setProperty("--licht-farbe", lichtFarbe(l));
+
+    const punkt = document.createElement("div");
+    punkt.className = "licht-punkt";
+    punkt.textContent = "💡";
+
+    const text = document.createElement("button");
+    text.className = "licht-text";
+    const name = document.createElement("div");
+    name.className = "licht-name";
+    name.textContent = l.name;
+    const info = document.createElement("div");
+    info.className = "licht-info";
+    info.textContent = l.online === false ? "offline"
+      : l.fehler ? "⚠️ Status unbekannt"
+      : l.an ? (l.helligkeit ? l.helligkeit + " %" : "an") + " · Tippen zum Einstellen"
+      : "aus";
+    text.append(name, info);
+    text.addEventListener("click", () => oeffneLicht(l));
+
+    const schalter = document.createElement("label");
+    schalter.className = "schalter";
+    schalter.innerHTML = `<input type="checkbox"><span></span>`;
+    const box = schalter.querySelector("input");
+    box.checked = !!l.an;
+    box.addEventListener("change", () => schalteLicht(l, "an", box.checked));
+
+    li.append(punkt, text, schalter);
+    liste.appendChild(li);
+  });
+}
+
+// Befehl an ein Licht schicken (Anzeige wird sofort angepasst)
+async function schalteLicht(l, art, wert) {
+  const vorher = { ...l };
+  if (art === "an") l.an = wert;
+  if (art === "helligkeit") { l.helligkeit = wert; l.an = true; }
+  if (art === "farbe") { l.farbe = wert; l.temperatur = null; l.an = true; }
+  if (art === "temperatur") { l.temperatur = wert; l.an = true; }
+  zeigeLichter();
+  if (offenesLicht === l) fuelleLichtFenster(l);
+
+  try {
+    // Wer eine Farbe wählt, während das Licht aus ist, schaltet es auch ein
+    if (art !== "an" && !vorher.an) await helfer("/govee/schalten", { sku: l.sku, device: l.device, art: "an", wert: true });
+    await helfer("/govee/schalten", { sku: l.sku, device: l.device, art, wert });
+  } catch (e) {
+    Object.assign(l, vorher);
+    zeigeLichter();
+    if (offenesLicht === l) fuelleLichtFenster(l);
+    alert(l.name + ": " + e.message);
+  }
+}
+
+function oeffneLicht(l) {
+  offenesLicht = l;
+  fuelleLichtFenster(l);
+  document.getElementById("licht-fenster").hidden = false;
+}
+
+function fuelleLichtFenster(l) {
+  document.getElementById("licht-name").textContent = l.name;
+  document.getElementById("licht-an").checked = !!l.an;
+
+  document.getElementById("licht-helligkeit-bereich").hidden = !l.kann.helligkeit;
+  const regler = document.getElementById("licht-helligkeit");
+  regler.value = l.helligkeit || 100;
+  document.getElementById("licht-helligkeit-wert").textContent = (l.helligkeit || 100) + " %";
+
+  const weiss = document.getElementById("licht-weiss");
+  weiss.innerHTML = "";
+  document.getElementById("licht-weiss-bereich").hidden = !l.kann.temperatur;
+  WEISSTOENE.forEach(w => {
+    const k = document.createElement("button");
+    k.className = "farbe";
+    k.style.background = w.farbe;
+    k.textContent = w.name;
+    const kelvin = Math.max(l.kann.temperatur?.min || 0, Math.min(l.kann.temperatur?.max || 99999, w.kelvin));
+    k.addEventListener("click", () => schalteLicht(l, "temperatur", kelvin));
+    weiss.appendChild(k);
+  });
+
+  const farben = document.getElementById("licht-farben");
+  farben.innerHTML = "";
+  document.getElementById("licht-farbe-bereich").hidden = !l.kann.farbe;
+  FARBEN.forEach(f => {
+    const k = document.createElement("button");
+    k.className = "farbe";
+    k.style.background = f;
+    k.setAttribute("aria-label", f);
+    k.addEventListener("click", () => schalteLicht(l, "farbe", hexZuRgb(f)));
+    farben.appendChild(k);
+  });
+}
+
+document.getElementById("licht-an").addEventListener("change", e => {
+  if (offenesLicht) schalteLicht(offenesLicht, "an", e.target.checked);
+});
+document.getElementById("licht-helligkeit").addEventListener("input", e => {
+  document.getElementById("licht-helligkeit-wert").textContent = e.target.value + " %";
+});
+// Erst beim Loslassen senden, damit Govee nicht mit Anfragen überflutet wird
+document.getElementById("licht-helligkeit").addEventListener("change", e => {
+  if (offenesLicht) schalteLicht(offenesLicht, "helligkeit", Number(e.target.value));
+});
+document.getElementById("licht-schliessen").addEventListener("click", () => {
+  offenesLicht = null;
+  document.getElementById("licht-fenster").hidden = true;
+});
+
+document.querySelectorAll("[data-alle]").forEach(k => {
+  k.addEventListener("click", async () => {
+    const an = k.dataset.alle === "an";
+    lichter.forEach(l => { if (l.online !== false) l.an = an; });
+    zeigeLichter();
+    try { await helfer("/govee/alle", { an }); }
+    catch (e) { alert(e.message); ladeLichter(); }
+  });
+});
+
+// Govee-Schlüssel speichern
+document.getElementById("govee-formular").addEventListener("submit", async e => {
+  e.preventDefault();
+  const status = document.getElementById("govee-status");
+  const schluessel = document.getElementById("govee-eingabe").value.trim();
+  if (!schluessel) return;
+  status.textContent = "Prüfe Schlüssel …";
+  try {
+    const r = await helfer("/govee/schluessel", { schluessel });
+    status.textContent = `✅ Verbunden! ${r.anzahl} Geräte gefunden.`;
+    document.getElementById("govee-eingabe").value = "";
+    setTimeout(() => { document.getElementById("govee-fenster").hidden = true; }, 1500);
+    ladeLichter();
+  } catch (fehler) {
+    status.textContent = "⚠️ " + fehler.message;
+  }
+});
+document.getElementById("govee-abbrechen").addEventListener("click", () => {
+  document.getElementById("govee-fenster").hidden = true;
+});
+
+
+/* =========================================================
    START
    ========================================================= */
 aktualisiereUhr();
@@ -563,3 +772,6 @@ setInterval(ladeNachrichten, NACHRICHTEN_AKTUALISIEREN_MINUTEN * 60 * 1000);
 
 ladeMicrosoft();
 setInterval(ladeMicrosoft, MICROSOFT_AKTUALISIEREN_MINUTEN * 60 * 1000);
+
+ladeLichter();
+setInterval(() => { if (!offenesLicht) ladeLichter(); }, LICHT_AKTUALISIEREN_MINUTEN * 60 * 1000);

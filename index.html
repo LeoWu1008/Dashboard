@@ -9,7 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zuhause">
   <title>Zuhause</title>
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 <body>
   <main class="raster">
@@ -19,7 +19,7 @@
       <div id="uhrzeit" class="uhrzeit">--:--</div>
       <div id="datum" class="datum">&nbsp;</div>
       <div id="begruessung" class="begruessung">&nbsp;</div>
-      <div class="version">Version 6</div>
+      <div class="version">Version 7</div>
     </section>
 
     <!-- Wetter -->
@@ -83,13 +83,55 @@
       <p>Kommt in Schritt 4</p>
     </section>
 
-    <section class="kachel platzhalter geraete">
-      <h2>💡 Licht &amp; Steckdose</h2>
-      <p>Kommt in Schritt 5</p>
+    <section class="kachel geraete">
+      <h2>💡 Licht
+        <span class="alle-knoepfe" id="alle-knoepfe" hidden>
+          <button class="mini-knopf" data-alle="an">Alle an</button>
+          <button class="mini-knopf" data-alle="aus">Alle aus</button>
+        </span>
+      </h2>
+      <ul id="licht-liste" class="scroll licht-liste"><li class="leise">Lade …</li></ul>
     </section>
+
+    <!-- Fenster: Govee-Schlüssel eingeben -->
+    <div id="govee-fenster" class="anmeldung" hidden>
+      <form id="govee-formular" class="anmeldung-box">
+        <h3>Govee verbinden</h3>
+        <p>Füge hier den API-Schlüssel aus der E-Mail von Govee ein:</p>
+        <input id="govee-eingabe" class="eingabe" type="text" placeholder="z. B. 1a2b3c4d-…" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <p id="govee-status" class="leise"></p>
+        <div class="knopf-reihe">
+          <button type="submit" class="knopf">Speichern</button>
+          <button type="button" id="govee-abbrechen" class="knopf leise-knopf">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Fenster: ein Licht einstellen -->
+    <div id="licht-fenster" class="anmeldung" hidden>
+      <div class="anmeldung-box licht-box">
+        <div class="licht-kopf">
+          <h3 id="licht-name">Licht</h3>
+          <label class="schalter"><input type="checkbox" id="licht-an"><span></span></label>
+        </div>
+        <div id="licht-helligkeit-bereich">
+          <p class="leise">Helligkeit <span id="licht-helligkeit-wert"></span></p>
+          <input type="range" id="licht-helligkeit" min="1" max="100" class="regler">
+        </div>
+        <div id="licht-weiss-bereich">
+          <p class="leise">Weißtöne</p>
+          <div class="farben" id="licht-weiss"></div>
+        </div>
+        <div id="licht-farbe-bereich">
+          <p class="leise">Farben</p>
+          <div class="farben" id="licht-farben"></div>
+        </div>
+        <button type="button" id="licht-schliessen" class="knopf leise-knopf">Fertig</button>
+      </div>
+    </div>
 
   </main>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
