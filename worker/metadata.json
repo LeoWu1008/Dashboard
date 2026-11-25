@@ -2,7 +2,18 @@
   "main_module": "index.js",
   "compatibility_date": "2026-11-01",
   "bindings": [
-    { "type": "kv_namespace", "name": "SPEICHER", "namespace_id": "9a3a577272e6431b98155d7635fa9010" },
-    { "type": "plain_text", "name": "MS_CLIENT_ID", "text": "3c393c7b-7965-437b-a5a9-578c4e76b96d" }
+    {
+      "type": "kv_namespace",
+      "name": "SPEICHER",
+      "namespace_id": "9a3a577272e6431b98155d7635fa9010"
+    },
+    {
+      "type": "plain_text",
+      "name": "MS_CLIENT_ID",
+      "text": "3c393c7b-7965-437b-a5a9-578c4e76b96d"
+    }
+  ],
+  "keep_bindings": [
+    "secret_text"
   ]
 }

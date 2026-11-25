@@ -200,22 +200,50 @@ async function graph(env, pfad, optionen = {}) {
 
 /* ---------- Kalender ---------- */
 
+// Outlook-Farbnamen → Farbcodes (falls kein eigener Farbcode gesetzt ist)
+const KALENDER_FARBEN = {
+  lightBlue: "#5ea7e8", lightGreen: "#6cc56c", lightOrange: "#f0a35e", lightGray: "#a0a0a0",
+  lightYellow: "#e8d25e", lightTeal: "#5ec7c0", lightPink: "#e87fb0", lightBrown: "#b48a6a",
+  lightRed: "#e86a6a", maxColor: "#a0a0a0", auto: "#ffb547"
+};
+
 async function kalender(env, tage) {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
   const ende = new Date(start.getTime() + tage * 86400000);
 
-  const daten = await graph(env,
-    `/me/calendarView?startDateTime=${start.toISOString()}&endDateTime=${ende.toISOString()}` +
-    `&$select=subject,start,end,isAllDay,location,showAs&$orderby=start/dateTime&$top=100`);
+  const alleKalender = (await graph(env, "/me/calendars?$select=id,name,color,hexColor,isDefaultCalendar")).value || [];
 
-  return (daten.value || []).map(t => ({
-    titel: t.subject || "(ohne Titel)",
-    start: t.start.dateTime,
-    ende: t.end.dateTime,
-    ganztaegig: t.isAllDay,
-    ort: t.location?.displayName || ""
+  // Alle Kalender gleichzeitig abfragen
+  const listen = await Promise.all(alleKalender.map(async k => {
+    const daten = await graph(env,
+      `/me/calendars/${k.id}/calendarView?startDateTime=${start.toISOString()}&endDateTime=${ende.toISOString()}` +
+      `&$select=subject,start,end,isAllDay,location,iCalUId,isCancelled&$top=200`);
+    return (daten.value || [])
+      .filter(t => !t.isCancelled)
+      .map(t => ({
+        titel: t.subject || "(ohne Titel)",
+        start: t.start.dateTime,
+        ende: t.end.dateTime,
+        ganztaegig: t.isAllDay,
+        ort: t.location?.displayName || "",
+        kalender: k.name,
+        farbe: (k.hexColor && k.hexColor !== "") ? k.hexColor : (KALENDER_FARBEN[k.color] || "#ffb547"),
+        uid: t.iCalUId
+      }));
   }));
+
+  // Zusammenführen, doppelte Termine entfernen, nach Beginn sortieren
+  const gesehen = new Set();
+  return listen.flat()
+    .filter(t => {
+      const schluessel = (t.uid || t.titel) + "|" + t.start;
+      if (gesehen.has(schluessel)) return false;
+      gesehen.add(schluessel);
+      return true;
+    })
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .map(({ uid, ...rest }) => rest);
 }
 
 

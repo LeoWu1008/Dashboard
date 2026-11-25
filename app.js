@@ -257,6 +257,8 @@ document.querySelectorAll(".quelle").forEach(knopf => {
    MICROSOFT: Anmeldung über den Cloud-Helfer
    ========================================================= */
 const KALENDER_TAGE = 7;
+// Kalender, die NICHT angezeigt werden sollen, z. B. ["Geburtstage", "Arbeiten"]
+const KALENDER_AUSBLENDEN = [];
 const MICROSOFT_AKTUALISIEREN_MINUTEN = 5;
 
 function sitzung() {
@@ -368,7 +370,8 @@ function uhrzeit(datum) {
 }
 
 async function ladeKalender() {
-  const termine = await helfer("/kalender?tage=" + KALENDER_TAGE);
+  const termine = (await helfer("/kalender?tage=" + KALENDER_TAGE))
+    .filter(t => !KALENDER_AUSBLENDEN.includes(t.kalender));
   const box = document.getElementById("kalender-inhalt");
   box.innerHTML = "";
 
@@ -396,6 +399,7 @@ async function ladeKalender() {
 
     const el = document.createElement("div");
     el.className = "termin" + (ende < jetzt ? " vorbei" : "");
+    if (t.farbe) el.style.borderLeftColor = t.farbe;
 
     const zeit = document.createElement("div");
     zeit.className = "termin-zeit";
@@ -406,11 +410,12 @@ async function ladeKalender() {
     titel.className = "termin-titel";
     titel.textContent = t.titel;
     text.appendChild(titel);
-    if (t.ort) {
-      const ort = document.createElement("div");
-      ort.className = "termin-ort";
-      ort.textContent = "📍 " + t.ort;
-      text.appendChild(ort);
+    const info = [t.kalender, t.ort ? "📍 " + t.ort : ""].filter(Boolean).join(" · ");
+    if (info) {
+      const zeile = document.createElement("div");
+      zeile.className = "termin-ort";
+      zeile.textContent = info;
+      text.appendChild(zeile);
     }
 
     el.append(zeit, text);
