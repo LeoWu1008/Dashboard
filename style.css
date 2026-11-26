@@ -76,54 +76,32 @@ html, body {
 /* ============================================
    KACHELN
    ============================================ */
-/* Glas-Kachel mit leuchtendem blauen Rand (oben links am hellsten) */
+/* Milchglas-Kachel (wie visionOS): hell, durchscheinend, feiner Lichtrand */
 .kachel {
   position: relative;
   isolation: isolate;
-  background:
-    linear-gradient(160deg, rgba(40, 48, 72, 0.55) 0%, rgba(14, 17, 27, 0.9) 45%, rgba(8, 10, 16, 0.95) 100%);
+  background: linear-gradient(160deg, rgba(255,255,255,0.13), rgba(255,255,255,0.06));
   border-radius: var(--radius);
-  padding: 22px 24px;
+  padding: 20px 22px;
   overflow: hidden;
   min-height: 0;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.10),
-    0 18px 40px -12px rgba(0, 0, 0, 0.7),
-    0 14px 34px -14px rgba(70, 115, 255, 0.55),
-    0 0 34px -10px var(--leuchten);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 0 0 0 1px rgba(255,255,255,0.07),
+    0 10px 30px -14px rgba(0,0,0,0.45);
 }
-/* Rand als Farbverlauf */
 .kachel::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  padding: 1.2px;
-  background: linear-gradient(140deg,
-    rgba(190, 210, 255, 0.95) 0%,
-    rgba(100, 135, 255, 0.45) 16%,
-    rgba(70, 100, 220, 0.10) 42%,
-    rgba(70, 100, 220, 0.08) 68%,
-    rgba(110, 150, 255, 0.70) 100%);
+  padding: 1px;
+  background: linear-gradient(150deg, rgba(255,255,255,0.45), rgba(255,255,255,0.06) 40%, rgba(255,255,255,0.04) 70%, rgba(255,255,255,0.22));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   pointer-events: none;
   z-index: 2;
-}
-/* Glanz auf der Oberfläche */
-.kachel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    radial-gradient(120% 60% at 0% 0%, rgba(120, 150, 255, 0.10), transparent 55%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.045), transparent 30%);
-  pointer-events: none;
-  z-index: -1;
 }
 
 .kachel h2 {
@@ -359,7 +337,9 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
+  z-index: 40;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 .anmeldung[hidden] { display: none; }
 .anmeldung-box {
@@ -540,11 +520,16 @@ html, body {
 .raum {
   position: fixed;
   inset: 0;
-  z-index: 5;
+  z-index: 0;
   background: var(--hintergrund);
-  transition: opacity 0.35s, visibility 0.35s;
 }
-.raum.weg { opacity: 0; visibility: hidden; pointer-events: none; }
+/* Oberfläche des 3D-Zimmers ausblenden, während die Kamera fliegt / das Dashboard offen ist */
+.raum-status, .raum-leiste, .raum-wetter, .raum-labels { transition: opacity 0.4s; }
+body.fliegt .raum-status, body.fliegt .raum-leiste, body.fliegt .raum-wetter, body.fliegt .raum-labels,
+body.dashboard-offen .raum-status, body.dashboard-offen .raum-leiste, body.dashboard-offen .raum-wetter, body.dashboard-offen .raum-labels {
+  opacity: 0;
+  pointer-events: none;
+}
 .raum-3d, .raum-3d canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
 .raum-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 
@@ -718,3 +703,204 @@ html, body {
 .raum-popup-info { font-size: 13px; color: var(--text-leise); margin: 4px 0 12px; }
 .raum-popup .knopf { padding: 9px 14px; font-size: 15px; }
 .raum-popup .knopf[hidden] { display: none; }
+
+/* ============================================
+   DASHBOARD ALS GLASFENSTER ÜBER DEM 3D-ZIMMER
+   ============================================ */
+.panel-schleier {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: rgba(12,14,18,0.18);
+  -webkit-backdrop-filter: blur(0px);
+  backdrop-filter: blur(0px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease, -webkit-backdrop-filter 0.6s ease, backdrop-filter 0.6s ease;
+}
+body.dashboard-offen .panel-schleier {
+  opacity: 1;
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  backdrop-filter: blur(16px) saturate(1.1);
+}
+
+.panel {
+  --panel-links: 92px;
+  position: fixed;
+  z-index: 20;
+  left: var(--panel-links);
+  right: 22px;
+  top: calc(20px + env(safe-area-inset-top));
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  border-radius: 34px;
+  background: linear-gradient(160deg, rgba(150,152,160,0.34), rgba(70,72,80,0.30));
+  -webkit-backdrop-filter: blur(30px) saturate(1.5);
+  backdrop-filter: blur(30px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.28),
+    inset 0 0 0 1px rgba(255,255,255,0.12),
+    0 40px 80px -20px rgba(0,0,0,0.6);
+  transform-origin: var(--ursprung-x, 50%) var(--ursprung-y, 50%);
+  transform: scale(0.06);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform 0.75s cubic-bezier(0.2, 0.85, 0.2, 1),
+    opacity 0.45s ease,
+    visibility 0s linear 0.75s;
+}
+body.dashboard-offen .panel {
+  transform: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    transform 0.75s cubic-bezier(0.2, 0.85, 0.2, 1),
+    opacity 0.35s ease,
+    visibility 0s;
+}
+/* Inhalt erscheint kurz nach dem Fenster */
+.panel > * { transition: opacity 0.4s ease 0s; opacity: 0; }
+body.dashboard-offen .panel > * { opacity: 1; transition-delay: 0.3s; }
+
+.panel-kopf {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px 4px;
+}
+.panel-suche {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 7px 18px 7px 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+  font-size: 14px;
+  color: var(--text-leise);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-suche b { color: var(--text); }
+.panel-suche-icon {
+  width: 32px; height: 32px; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+}
+.panel-kopf-rechts { display: flex; align-items: center; gap: 8px; }
+.panel-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.panel-schliessen {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.14);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.14);
+  color: var(--text);
+}
+.panel-schliessen:active { transform: scale(0.92); }
+
+/* Raster im Fenster */
+.panel .raster {
+  flex: 1;
+  min-height: 0;
+  height: auto;
+  padding: 14px 22px 22px;
+  gap: 14px;
+}
+
+/* Schwebende Navigation links (wie im Vorbild) */
+.panel-nav {
+  position: fixed;
+  z-index: 21;
+  left: 22px;
+  top: 50%;
+  transform: translate(-30px, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 999px;
+  background: linear-gradient(160deg, rgba(150,152,160,0.36), rgba(70,72,80,0.32));
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), inset 0 0 0 1px rgba(255,255,255,0.12), 0 20px 40px -14px rgba(0,0,0,0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease, transform 0.5s cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+body.dashboard-offen .panel-nav {
+  opacity: 1;
+  transform: translate(0, -50%);
+  pointer-events: auto;
+  transition-delay: 0.35s;
+}
+.panel-nav-knopf {
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  border: none;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  color: rgba(255,255,255,0.75);
+}
+.panel-nav-knopf.aktiv { background: rgba(255,255,255,0.22); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2); }
+.panel-nav-knopf:active { transform: scale(0.9); }
+
+/* Kurz aufleuchten, wenn man über die Navigation zu einer Kachel springt */
+.kachel.hervorheben { animation: hervorheben 1.2s ease; }
+@keyframes hervorheben {
+  0%, 100% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 10px 30px -14px rgba(0,0,0,0.45); }
+  30% { box-shadow: inset 0 1px 0 rgba(255,255,255,0.4), 0 0 0 2px rgba(140,175,255,0.8), 0 0 40px -6px var(--leuchten); }
+}
+
+/* Wetter-Kachel als blaue Glaskarte wie im Vorbild */
+.kachel.wetter {
+  background: linear-gradient(155deg, rgba(140,185,255,0.55), rgba(70,120,230,0.38) 60%, rgba(60,100,210,0.32));
+}
+.kachel.wetter h2, .kachel.wetter .wetter-details, .kachel.wetter .tag-name, .kachel.wetter .tag-min { color: rgba(255,255,255,0.85); }
+.kachel.wetter .wetter-temp { background: none; color: #fff; }
+.kachel.wetter .tag { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.18); }
+.kachel.wetter .tag-regen { color: #e3eeff; }
+
+/* Innenflächen hell statt blau */
+.tag { border-color: rgba(255,255,255,0.10); background: rgba(255,255,255,0.06); }
+.termin { background: rgba(255,255,255,0.07); }
+.quelle, .mini-knopf, .leise-knopf { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.14); }
+.todo-neu input { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); }
+.ticker { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.12); box-shadow: inset 0 1px 0 rgba(255,255,255,0.15); }
+.uhrzeit, .wetter-temp { background: linear-gradient(180deg, #ffffff 40%, #dfe6f5); -webkit-background-clip: text; background-clip: text; }
+.begruessung { color: #c7d6ff; }
+.raum-knopf { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); }
+
+@media (orientation: portrait) {
+  .panel { --panel-links: 18px; left: 18px; right: 18px; top: calc(78px + env(safe-area-inset-top)); }
+  .panel-nav { top: calc(18px + env(safe-area-inset-top)); left: 50%; transform: translate(-50%, -20px); flex-direction: row; }
+  body.dashboard-offen .panel-nav { transform: translate(-50%, 0); }
+  .panel-suche { display: none; }
+  .panel-kopf { justify-content: flex-end; }
+}
+
+/* Feinschliff im Glasfenster */
+.panel .raum-knopf { display: none; }                 /* Schließen übernimmt X bzw. Haus-Symbol */
+.panel .uhrzeit { font-size: clamp(44px, min(7vw, 9.5vh), 96px); }
+@media (orientation: portrait) {
+  .panel .raster { grid-template-rows: 1.7fr 1.2fr 1.3fr 0.5fr 46px; }
+}

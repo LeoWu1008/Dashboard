@@ -1046,32 +1046,116 @@ function wetterZeichnen() {
 }
 
 /* =========================================================
-   Ansicht wechseln: 3D-Zimmer ↔ Dashboard
+   Ansicht wechseln: 3D-Zimmer ↔ Dashboard (mit Kamerafahrt)
    ========================================================= */
-const raumAnsicht = document.getElementById("raum");
+const heimPosition = kamera.position.clone();
+const heimZiel = steuerung.target.clone();
+// Kamera vor dem iPad: Blick von Osten direkt auf den Bildschirm
+const ipadZiel = P(T.x1 + 0.02, 1.11, 2.56);
+const ipadPosition = P(T.x1 + 0.95, 1.32, 2.56);
+
+let flug = null;          // laufende Kamerafahrt
 let laeuft = false;
-function zeigeDashboard() {
-  versteckePopup();
-  raumAnsicht.classList.add("weg");
+let dashboardOffen = false;
+
+const sanft = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+function kameraFlug(nachPosition, nachZiel, dauer) {
+  return new Promise(fertig => {
+    flug = {
+      vonPosition: kamera.position.clone(), vonZiel: steuerung.target.clone(),
+      nachPosition, nachZiel, start: performance.now(), dauer, fertig
+    };
+    starteSchleife();
+  });
+}
+function flugSchritt(jetzt) {
+  const t = Math.min(1, (jetzt - flug.start) / flug.dauer);
+  const k = sanft(t);
+  kamera.position.lerpVectors(flug.vonPosition, flug.nachPosition, k);
+  // leichter Bogen nach oben, wirkt wie eine echte Kamerafahrt
+  kamera.position.y += Math.sin(k * Math.PI) * 0.35;
+  steuerung.target.lerpVectors(flug.vonZiel, flug.nachZiel, k);
+  kamera.lookAt(steuerung.target);
+  if (t >= 1) { const f = flug.fertig; flug = null; f(); }
+}
+
+function starteSchleife() {
+  if (!laeuft) { laeuft = true; renderer.setAnimationLoop(zeichnen); }
+}
+function stoppeSchleife() {
   laeuft = false;
   renderer.setAnimationLoop(null);
 }
-function zeigeRaum() {
-  raumAnsicht.classList.remove("weg");
+
+// Startpunkt der Fenster-Animation = Position des iPads auf dem Bildschirm
+function setzeUrsprung() {
+  const panel = document.getElementById("panel");
+  const p = ipadZiel.clone().project(kamera);
+  const x = (p.x + 1) / 2 * container.clientWidth, y = (1 - p.y) / 2 * container.clientHeight;
+  const r = panel.getBoundingClientRect();
+  panel.style.setProperty("--ursprung-x", (x - r.left) + "px");
+  panel.style.setProperty("--ursprung-y", (y - r.top) + "px");
+}
+
+async function zeigeDashboard() {
+  if (dashboardOffen || flug) return;
+  dashboardOffen = true;
+  versteckePopup();
+  document.body.classList.add("fliegt");
+  steuerung.enabled = false;
+  const fahrt = kameraFlug(ipadPosition, ipadZiel, 1300);
+  // Fenster öffnet sich, kurz bevor die Kamera ankommt
+  setTimeout(() => { setzeUrsprung(); document.body.classList.add("dashboard-offen"); panelInfos(); }, 950);
+  await fahrt;
+  document.body.classList.remove("fliegt");
+  setTimeout(() => { if (dashboardOffen) stoppeSchleife(); }, 900);   // Akku sparen: Hintergrund steht still
+}
+
+async function zeigeRaum() {
   groesseAnpassen();
   tageslicht();
   aktualisiereLeds();
   wetterAktualisieren();
-  if (!laeuft) { laeuft = true; renderer.setAnimationLoop(zeichnen); }
+  starteSchleife();
+  if (!dashboardOffen) return;
+  setzeUrsprung();
+  document.body.classList.remove("dashboard-offen");
+  document.body.classList.add("fliegt");
+  await new Promise(r => setTimeout(r, 420));
+  await kameraFlug(heimPosition.clone(), heimZiel.clone(), 1200);
+  document.body.classList.remove("fliegt");
+  steuerung.enabled = true;
+  dashboardOffen = false;
 }
 window.zeigeRaum = zeigeRaum;
 window.zeigeDashboard = zeigeDashboard;
 document.getElementById("zum-raum")?.addEventListener("click", zeigeRaum);
 document.getElementById("zum-dashboard")?.addEventListener("click", zeigeDashboard);
+document.querySelectorAll("[data-schliessen]").forEach(k => k.addEventListener("click", zeigeRaum));
+document.getElementById("panel-schleier").addEventListener("click", zeigeRaum);
+// Navigation: zu einer Kachel springen und sie kurz aufleuchten lassen
+document.querySelectorAll("[data-sprung]").forEach(k => k.addEventListener("click", () => {
+  const ziel = document.querySelector(".kachel." + k.dataset.sprung);
+  if (!ziel) return;
+  ziel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  ziel.classList.remove("hervorheben"); void ziel.offsetWidth; ziel.classList.add("hervorheben");
+}));
+
+// Kopfzeile des Fensters: Lichter, Wetter, Uhr
+function panelInfos() {
+  const zahl = document.getElementById("raum-licht-zahl")?.textContent || "";
+  document.getElementById("panel-licht-zahl").textContent = zahl;
+  document.getElementById("panel-wetter").textContent =
+    (document.getElementById("wetter-temp")?.textContent || "--°") + " " + (document.getElementById("wetter-text")?.textContent || "");
+  document.getElementById("panel-uhr").textContent = document.getElementById("uhrzeit")?.textContent || "";
+}
+setInterval(panelInfos, 5000);
 
 const zuKamera = new THREE.Vector3();
 function zeichnen(zeit) {
-  steuerung.update();
+  if (flug) flugSchritt(performance.now());
+  else steuerung.update();
   // Wände zwischen Kamera und Raum auf Sockelhöhe abschneiden
   waende.forEach(w => {
     zuKamera.copy(kamera.position).sub(w.mitte);
@@ -1111,4 +1195,5 @@ try {
 } catch {}
 
 zeigeRaum();
+panelInfos();
 setInterval(() => { if (laeuft) { aktualisiereLeds(); wetterAktualisieren(); tageslicht(); } }, 5000);

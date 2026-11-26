@@ -9,9 +9,43 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zuhause">
   <title>Zuhause</title>
-  <link rel="stylesheet" href="style.css?v=17">
+  <link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
+  <!-- Verschwommener Schleier über dem 3D-Zimmer, wenn das Dashboard offen ist -->
+  <div id="panel-schleier" class="panel-schleier"></div>
+
+  <!-- Schwebende Navigation links -->
+  <nav class="panel-nav" aria-label="Navigation">
+    <button class="panel-nav-knopf aktiv" aria-label="Übersicht" title="Übersicht">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.6"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.6"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.6"/></svg>
+    </button>
+    <button class="panel-nav-knopf" data-schliessen aria-label="Zum Zimmer" title="Zimmer">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 11.5 12 5l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z"/></svg>
+    </button>
+    <button class="panel-nav-knopf" data-sprung="geraete" aria-label="Licht" title="Licht">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3Z"/></svg>
+    </button>
+    <button class="panel-nav-knopf" data-sprung="kalender" aria-label="Kalender" title="Kalender">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="5.5" width="16" height="14.5" rx="2.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>
+    </button>
+  </nav>
+
+  <!-- Das Dashboard als großes Glasfenster -->
+  <section id="panel" class="panel" aria-label="Dashboard">
+    <header class="panel-kopf">
+      <div class="panel-suche">
+        <span class="panel-suche-icon">🏠</span>
+        <span><b>Mein Zimmer</b> · <span id="panel-licht-zahl">…</span></span>
+      </div>
+      <div class="panel-kopf-rechts">
+        <span id="panel-wetter" class="panel-chip">--°</span>
+        <span id="panel-uhr" class="panel-chip panel-uhr">--:--</span>
+        <button class="panel-schliessen" data-schliessen aria-label="Schließen">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+    </header>
   <main class="raster">
 
     <!-- Uhr & Datum -->
@@ -20,7 +54,7 @@
       <div id="uhrzeit" class="uhrzeit">--:--</div>
       <div id="datum" class="datum">&nbsp;</div>
       <div id="begruessung" class="begruessung">&nbsp;</div>
-      <div class="version">Version 17</div>
+      <div class="version">Version 18</div>
     </section>
 
     <!-- Wetter -->
@@ -52,20 +86,6 @@
       </form>
     </section>
 
-    <!-- Fenster für die Microsoft-Anmeldung -->
-    <div id="anmeldung" class="anmeldung" hidden>
-      <div class="anmeldung-box">
-        <h3>Mit Microsoft verbinden</h3>
-        <p>1. Öffne auf diesem iPad oder deinem Handy:</p>
-        <a id="anmeldung-link" class="anmeldung-link" target="_blank" rel="noopener">microsoft.com/link</a>
-        <p>2. Gib diesen Code ein:</p>
-        <div id="anmeldung-code" class="anmeldung-code">········</div>
-        <button id="anmeldung-kopieren" class="knopf">Code kopieren</button>
-        <p>3. Melde dich mit deinem privaten Microsoft-Konto an und tippe auf „Annehmen“.</p>
-        <p id="anmeldung-status" class="leise">Warte auf deine Anmeldung …</p>
-        <button id="anmeldung-abbrechen" class="knopf leise-knopf">Abbrechen</button>
-      </div>
-    </div>
 
     <section class="kachel nachrichten">
       <h2>📰 Nachrichten <span id="nachrichten-stand" class="stand"></span></h2>
@@ -93,6 +113,31 @@
       </h2>
       <ul id="licht-liste" class="scroll licht-liste"><li class="leise">Lade …</li></ul>
     </section>
+
+    <!-- Börsen-Laufband -->
+    <section class="ticker" aria-label="Börsenkurse">
+      <div class="ticker-band" id="ticker-band"><span class="ticker-eintrag leise">Lade Börsenkurse …</span></div>
+    </section>
+  </main>
+  </section>
+
+    <!-- Fenster für die Microsoft-Anmeldung -->
+    <div id="anmeldung" class="anmeldung" hidden>
+      <div class="anmeldung-box">
+        <h3>Mit Microsoft verbinden</h3>
+        <p>1. Öffne auf diesem iPad oder deinem Handy:</p>
+        <a id="anmeldung-link" class="anmeldung-link" target="_blank" rel="noopener">microsoft.com/link</a>
+        <p>2. Gib diesen Code ein:</p>
+        <div id="anmeldung-code" class="anmeldung-code">········</div>
+        <button id="anmeldung-kopieren" class="knopf">Code kopieren</button>
+        <p>3. Melde dich mit deinem privaten Microsoft-Konto an und tippe auf „Annehmen“.</p>
+        <p id="anmeldung-status" class="leise">Warte auf deine Anmeldung …</p>
+        <button id="anmeldung-abbrechen" class="knopf leise-knopf">Abbrechen</button>
+      </div>
+    </div>
+
+
+
 
     <!-- Fenster: Govee-Schlüssel eingeben -->
     <div id="govee-fenster" class="anmeldung" hidden>
@@ -131,12 +176,7 @@
       </div>
     </div>
 
-    <!-- Börsen-Laufband -->
-    <section class="ticker" aria-label="Börsenkurse">
-      <div class="ticker-band" id="ticker-band"><span class="ticker-eintrag leise">Lade Börsenkurse …</span></div>
-    </section>
 
-  </main>
 
   <!-- 3D-Zimmer (Startansicht) -->
   <div id="raum" class="raum">
@@ -187,7 +227,7 @@
     </div>
   </div>
 
-  <script src="app.js?v=17"></script>
-  <script type="module" src="raum.js?v=17"></script>
+  <script src="app.js?v=18"></script>
+  <script type="module" src="raum.js?v=18"></script>
 </body>
 </html>
